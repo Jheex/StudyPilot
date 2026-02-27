@@ -11,7 +11,9 @@ class Categoria {
   Color cor;
   Categoria({required this.nome, required this.cor});
 
-  Map<String, dynamic> toJson() => {'nome': nome, 'cor': cor.value};
+  // Corrigido para toARGB32() para evitar erro de deprecated
+  Map<String, dynamic> toJson() => {'nome': nome, 'cor': cor.toARGB32()};
+  
   factory Categoria.fromJson(Map<String, dynamic> json) => 
       Categoria(nome: json['nome'], cor: Color(json['cor']));
 }
@@ -85,7 +87,9 @@ class _AgendaScreenState extends State<AgendaScreen> {
   void initState() {
     super.initState();
     _carregarDados();
-    _timer = Timer.periodic(const Duration(minutes: 1), (timer) => setState(() {}));
+    _timer = Timer.periodic(const Duration(minutes: 1), (timer) {
+      if (mounted) setState(() {});
+    });
   }
 
   @override
@@ -113,7 +117,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
     await prefs.setString('agenda_data', data);
   }
 
-  // --- LÓGICA DE EXIBIÇÃO E REPETIÇÃO ---
+  // --- LÓGICA DE EXIBIÇÃO ---
 
   bool _deveExibirNoDia(Compromisso item, DateTime diaAlvo) {
     final dataInicio = DateTime(item.dataHora.year, item.dataHora.month, item.dataHora.day);
@@ -134,7 +138,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
     }
   }
 
-  // --- INTERFACE DE CADASTRO ---
+  // --- INTERFACE ---
 
   Future<void> _selecionarDataHora(BuildContext context, StateSetter setModalState) async {
     final DateTime? data = await showDatePicker(
@@ -144,6 +148,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
       lastDate: DateTime(2100),
     );
     if (data != null) {
+      if (!context.mounted) return;
       final TimeOfDay? hora = await showTimePicker(
         context: context,
         initialTime: TimeOfDay.fromDateTime(_diaSelecionado),
@@ -294,10 +299,9 @@ class _AgendaScreenState extends State<AgendaScreen> {
     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
   );
 
-  // --- COMPONENTES DA TELA ---
-
   @override
   Widget build(BuildContext context) {
+    // Aqui o _filtroAtivo é usado corretamente:
     final filtrados = _agenda.where((e) => 
       _deveExibirNoDia(e, _diaSelecionado) && 
       (_filtroAtivo == 'Todos' || e.categoria.nome == _filtroAtivo)
@@ -358,7 +362,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
       itemBuilder: (context, index) {
         final d = dias[index];
         if (d == null) return const SizedBox();
-        bool isSel = d.day == _diaSelecionado.day && d.month == _diaSelecionado.month;
+        bool isSel = d.day == _diaSelecionado.day && d.month == _diaSelecionado.month && d.year == _diaSelecionado.year;
         bool temEvento = _agenda.any((e) => _deveExibirNoDia(e, d) && !e.concluido);
 
         return GestureDetector(
@@ -416,6 +420,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
               tilePadding: const EdgeInsets.symmetric(horizontal: 12),
               leading: Checkbox(
                 value: item.concluido,
+                activeColor: const Color(0xFF03DAC6),
                 onChanged: (v) {
                   setState(() => item.concluido = v!);
                   _salvarDados();

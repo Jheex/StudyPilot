@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'app_data.dart'; // Importe do seu arquivo de dados
 import 'study_screen.dart';
 import 'agenda_screen.dart';
 import 'financas_screen.dart';
@@ -50,6 +51,24 @@ class MainLayout extends StatefulWidget {
 
 class _MainLayoutState extends State<MainLayout> {
   int indiceAtual = 0;
+  final AppData appData = AppData(); // Instância do Singleton de dados
+
+  @override
+  void initState() {
+    super.initState();
+    // Faz com que a tela principal "escute" as mudanças no AppData
+    appData.addListener(_atualizarInterface);
+  }
+
+  @override
+  void dispose() {
+    appData.removeListener(_atualizarInterface);
+    super.dispose();
+  }
+
+  void _atualizarInterface() {
+    if (mounted) setState(() {});
+  }
 
   void mudarAba(int index) {
     setState(() => indiceAtual = index);
@@ -145,7 +164,7 @@ class _MainLayoutState extends State<MainLayout> {
     );
   }
 
-  // --- NOVA DASHBOARD ESTRUTURADA ---
+  // --- DASHBOARD COM VÍNCULO AO APPDATA ---
 
   Widget buildDashboard() {
     return SingleChildScrollView(
@@ -158,24 +177,20 @@ class _MainLayoutState extends State<MainLayout> {
               style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: kSecondaryColor, letterSpacing: 2)),
           const SizedBox(height: 15),
 
-          // 1. Atalhos Rápidos
           _buildQuickAccessGrid(),
 
           const SizedBox(height: 30),
           
-          // 2. Agenda - Próximas tarefas
           _buildSectionHeader("AGENDA: PRAZOS RECENTES", Icons.event_note_rounded),
           _buildAgendaPreview(),
 
           const SizedBox(height: 25),
 
-          // 3. Estudos - Ranking de XP por Pasta
           _buildSectionHeader("ESTUDOS: PERFORMANCE POR PASTA", Icons.leaderboard_rounded),
           _buildEstudosRanking(),
 
           const SizedBox(height: 25),
 
-          // 4. Finanças - Resumo de Gastos
           _buildSectionHeader("FINANÇAS: VISÃO MENSAL", Icons.account_balance_wallet_rounded),
           _buildFinancasSummary(),
           
@@ -184,8 +199,6 @@ class _MainLayoutState extends State<MainLayout> {
       ),
     );
   }
-
-  // --- COMPONENTES DA DASHBOARD ---
 
   Widget _buildSectionHeader(String title, IconData icon) {
     return Padding(
@@ -207,7 +220,7 @@ class _MainLayoutState extends State<MainLayout> {
       crossAxisCount: 2,
       crossAxisSpacing: 12,
       mainAxisSpacing: 12,
-      childAspectRatio: 2.1, // Cards mais compactos
+      childAspectRatio: 2.1,
       children: [
         _buildSmallCard("Estudos", kAccentColor, Icons.bolt_rounded, () => mudarAba(1)),
         _buildSmallCard("Agenda", const Color(0xFFCF6679), Icons.calendar_today_rounded, () => mudarAba(2)),
@@ -242,19 +255,31 @@ class _MainLayoutState extends State<MainLayout> {
   }
 
   Widget _buildAgendaPreview() {
+    // Filtra apenas tarefas não concluídas e pega as 2 mais próximas
+    final proximasTarefas = appData.tarefas
+        .where((t) => !t.concluida)
+        .take(2)
+        .toList();
+
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(color: kCardColor, borderRadius: BorderRadius.circular(22)),
-      child: Column(
-        children: [
-          _buildAgendaItem("Checkpoint 2 - Mobile", "Hoje, 23:59", Colors.redAccent),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 12),
-            child: Divider(color: Colors.white10, height: 1),
-          ),
-          _buildAgendaItem("Global Solution FIAP", "Em 12 dias", Colors.amber),
-        ],
-      ),
+      child: proximasTarefas.isEmpty
+          ? const Center(child: Text("Nenhuma tarefa pendente! 🎉", style: TextStyle(color: Colors.white30, fontSize: 12)))
+          : Column(
+              children: proximasTarefas.map((t) {
+                bool isLast = proximasTarefas.last == t;
+                return Column(
+                  children: [
+                    _buildAgendaItem(t.titulo, "${t.prazo.day}/${t.prazo.month}", t.cor),
+                    if (!isLast) const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: Divider(color: Colors.white10, height: 1),
+                    ),
+                  ],
+                );
+              }).toList(),
+            ),
     );
   }
 
@@ -263,7 +288,7 @@ class _MainLayoutState extends State<MainLayout> {
       children: [
         Container(width: 4, height: 20, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(10))),
         const SizedBox(width: 12),
-        Expanded(child: Text(task, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500))),
+        Expanded(child: Text(task, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis)),
         Text(date, style: const TextStyle(color: Colors.white38, fontSize: 11)),
       ],
     );
@@ -273,13 +298,16 @@ class _MainLayoutState extends State<MainLayout> {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(color: kCardColor, borderRadius: BorderRadius.circular(22)),
-      child: Column(
-        children: [
-          _buildRankingItem("Desenvolvimento Cross-Platform", 0.72, kAccentColor),
-          const SizedBox(height: 15),
-          _buildRankingItem("Engenharia de Software", 0.35, kSecondaryColor),
-        ],
-      ),
+      child: appData.pastas.isEmpty
+          ? const Center(child: Text("Sem dados de estudo.", style: TextStyle(color: Colors.white30, fontSize: 12)))
+          : Column(
+              children: appData.pastas.map((p) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 15),
+                  child: _buildRankingItem(p.nome, p.progresso, p.cor),
+                );
+              }).toList(),
+            ),
     );
   }
 
@@ -290,7 +318,7 @@ class _MainLayoutState extends State<MainLayout> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(pasta, style: const TextStyle(fontSize: 12, color: Colors.white70)),
+            Expanded(child: Text(pasta, style: const TextStyle(fontSize: 12, color: Colors.white70), overflow: TextOverflow.ellipsis)),
             Text("${(progresso * 100).toInt()}%", style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold)),
           ],
         ),
@@ -319,12 +347,15 @@ class _MainLayoutState extends State<MainLayout> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Column(
+          Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("GASTOS TOTAIS (FEVEREIRO)", style: TextStyle(color: Colors.white38, fontSize: 9, fontWeight: FontWeight.bold)),
-              SizedBox(height: 4),
-              Text("R\$ 1.420,50", style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
+              const Text("GASTOS TOTAIS NO MÊS", style: TextStyle(color: Colors.white38, fontSize: 9, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 4),
+              Text(
+                "R\$ ${appData.saldoMensal.toStringAsFixed(2)}", 
+                style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: -0.5)
+              ),
             ],
           ),
           Container(
