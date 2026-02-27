@@ -1,17 +1,34 @@
 import 'package:flutter/material.dart';
 import 'study_screen.dart';
-import 'agenda_screen.dart';   // Novo import
-import 'financas_screen.dart'; // Novo import
+import 'agenda_screen.dart';
+import 'financas_screen.dart';
+import 'config_screen.dart';
+
+const Color kBackgroundColor = Color(0xFF121421); 
+const Color kCardColor = Color(0xFF1C1F33);       
+const Color kAccentColor = Color(0xFFBB86FC);     
+const Color kSecondaryColor = Color(0xFF03DAC6);  
 
 void main() => runApp(const StudyPilotApp());
 
 class StudyPilotApp extends StatelessWidget {
   const StudyPilotApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(brightness: Brightness.dark, useMaterial3: true, scaffoldBackgroundColor: const Color(0xFF0A0C10)),
+      theme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.dark, // Consistência 1
+        scaffoldBackgroundColor: kBackgroundColor,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: kAccentColor,
+          brightness: Brightness.dark, // Consistência 2 (Resolve o erro da imagem)
+          primary: kAccentColor,
+          surface: kCardColor,
+        ),
+      ),
       home: const MainLayout(),
     );
   }
@@ -19,6 +36,7 @@ class StudyPilotApp extends StatelessWidget {
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
+
   @override
   State<MainLayout> createState() => _MainLayoutState();
 }
@@ -26,68 +44,176 @@ class MainLayout extends StatefulWidget {
 class _MainLayoutState extends State<MainLayout> {
   int indiceAtual = 0;
 
-  void mudarAba(int index) => setState(() => indiceAtual = index);
+  void mudarAba(int index) {
+    setState(() => indiceAtual = index);
+  }
 
   @override
   Widget build(BuildContext context) {
     final List<Widget> telas = [
-      buildDashboard(),       // Aba 0
-      const StudyScreen(),    // Aba 1
-      const AgendaScreen(),   // Aba 2
-      const FinancasScreen(), // Aba 3
+      buildDashboard(),
+      const StudyScreen(),
+      const AgendaScreen(),
+      const FinancasScreen(),
     ];
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        title: const Text("StudyPilot", style: TextStyle(fontWeight: FontWeight.w900)),
-      ),
-      body: IndexedStack(index: indiceAtual, children: telas),
-      bottomNavigationBar: NavigationBar(
-        backgroundColor: const Color(0xFF0A0C10),
-        indicatorColor: const Color(0xFFBB86FC).withOpacity(0.2),
-        selectedIndex: indiceAtual,
-        onDestinationSelected: mudarAba,
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.grid_view_rounded), label: 'Home'),
-          NavigationDestination(icon: Icon(Icons.bolt_rounded), label: 'Estudos'),
-          NavigationDestination(icon: Icon(Icons.calendar_today_rounded), label: 'Agenda'),
-          NavigationDestination(icon: Icon(Icons.payments_rounded), label: 'Finanças'),
+        backgroundColor: kBackgroundColor,
+        elevation: 0,
+        toolbarHeight: 80,
+        centerTitle: false, // Garante que tudo comece da esquerda
+        title: Row(
+          children: [
+            // LOGO/AVATAR DISCRETO
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [kAccentColor, kSecondaryColor],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Center(child: Text("🚀", style: TextStyle(fontSize: 20))),
+            ),
+            const SizedBox(width: 12),
+            // NOME DO APP NA ESQUERDA
+            const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  "StudyPilot",
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 20,
+                    color: Colors.white,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                Text(
+                  "OPERATIONAL UNIT",
+                  style: TextStyle(
+                    fontSize: 8,
+                    color: Colors.white24,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          // SINO DE NOTIFICAÇÕES
+          IconButton(
+            onPressed: () {},
+            icon: const Icon(Icons.notifications_none_rounded, color: Colors.white70),
+          ),
+          // ENGRENAGEM DE CONFIGURAÇÕES
+          Padding(
+            padding: const EdgeInsets.only(right: 15, left: 5),
+            child: GestureDetector(
+              onTap: () => Navigator.push(
+                context, 
+                MaterialPageRoute(builder: (context) => const ConfigScreen())
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.05),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.settings_outlined, size: 22, color: kAccentColor),
+              ),
+            ),
+          ),
         ],
+        // LINHA SUTIL DE SEPARAÇÃO
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(color: Colors.white.withValues(alpha: 0.05), height: 1),
+        ),
+      ),
+      body: IndexedStack(
+        index: indiceAtual,
+        children: telas,
+      ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: kBackgroundColor,
+          border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.05))),
+        ),
+        child: NavigationBar(
+          backgroundColor: kBackgroundColor,
+          indicatorColor: kAccentColor.withValues(alpha: 0.1),
+          selectedIndex: indiceAtual,
+          onDestinationSelected: mudarAba,
+          height: 75,
+          destinations: const [
+            NavigationDestination(icon: Icon(Icons.grid_view_rounded), label: 'Home'),
+            NavigationDestination(icon: Icon(Icons.bolt_rounded), label: 'Estudos'),
+            NavigationDestination(icon: Icon(Icons.calendar_today_rounded), label: 'Agenda'),
+            NavigationDestination(icon: Icon(Icons.payments_outlined), label: 'Finanças'),
+          ],
+        ),
       ),
     );
   }
 
   Widget buildDashboard() {
-    return GridView.count(
-      padding: const EdgeInsets.all(20),
-      crossAxisCount: 2,
-      crossAxisSpacing: 15,
-      mainAxisSpacing: 15,
-      children: [
-        _buildBlock("Estudos", "XP & Nível", Icons.bolt_rounded, const Color(0xFFBB86FC), () => mudarAba(1)),
-        _buildBlock("Agenda", "Prazos", Icons.calendar_today_rounded, const Color(0xFFCF6679), () => mudarAba(2)),
-        _buildBlock("Finanças", "Controlo", Icons.payments_rounded, Colors.greenAccent, () => mudarAba(3)),
-        _buildBlock("Alarmes", "Foco", Icons.alarm_rounded, const Color(0xFF03DAC6), () {}),
-      ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text("CENTRAL DE OPERAÇÕES", 
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: kSecondaryColor, letterSpacing: 2)),
+          const SizedBox(height: 20),
+          Expanded(
+            child: GridView.count(
+              crossAxisCount: 2,
+              crossAxisSpacing: 18,
+              mainAxisSpacing: 18,
+              children: [
+                _buildBlock("Estudos", "XP & Níveis", Icons.bolt_rounded, kAccentColor, () => mudarAba(1)),
+                _buildBlock("Agenda", "Prazos FIAP", Icons.calendar_today_rounded, const Color(0xFFCF6679), () => mudarAba(2)),
+                _buildBlock("Finanças", "Balanço", Icons.payments_rounded, kSecondaryColor, () => mudarAba(3)),
+                _buildBlock("Alarmes", "Foco Total", Icons.alarm_rounded, Colors.orangeAccent, () {}),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildBlock(String t, String s, IconData i, Color c, VoidCallback o) {
+  Widget _buildBlock(String title, String sub, IconData icon, Color color, VoidCallback onTap) {
     return InkWell(
-      onTap: o,
+      onTap: onTap,
       borderRadius: BorderRadius.circular(28),
       child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(color: const Color(0xFF161B22), borderRadius: BorderRadius.circular(28)),
+        padding: const EdgeInsets.all(22),
+        decoration: BoxDecoration(
+          color: kCardColor,
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.03)),
+        ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(i, color: c, size: 30),
-            const SizedBox(height: 10),
-            Text(t, style: const TextStyle(fontWeight: FontWeight.bold)),
-            Text(s, style: const TextStyle(color: Colors.white38, fontSize: 10)),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(14)),
+              child: Icon(icon, color: color, size: 26),
+            ),
+            const SizedBox(height: 14),
+            Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            Text(sub, style: const TextStyle(color: Colors.white30, fontSize: 10)),
           ],
         ),
       ),
