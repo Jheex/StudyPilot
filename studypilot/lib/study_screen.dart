@@ -8,12 +8,19 @@ class EstudoLog {
   String texto;
   final String data;
   final int xp;
+  final DateTime timestamp;
 
-  EstudoLog({required this.texto, required this.data, this.xp = 100});
+  EstudoLog({required this.texto, required this.data, this.xp = 100, DateTime? timestamp}) 
+    : timestamp = timestamp ?? DateTime.now();
 
-  Map<String, dynamic> toJson() => {'texto': texto, 'data': data, 'xp': xp};
+  Map<String, dynamic> toJson() => {'texto': texto, 'data': data, 'xp': xp, 'timestamp': timestamp.toIso8601String()};
   factory EstudoLog.fromJson(Map<String, dynamic> json) => 
-      EstudoLog(texto: json['texto'], data: json['data'], xp: json['xp'] ?? 100);
+      EstudoLog(
+        texto: json['texto'], 
+        data: json['data'], 
+        xp: json['xp'] ?? 100,
+        timestamp: json['timestamp'] != null ? DateTime.parse(json['timestamp']) : DateTime.now()
+      );
 }
 
 class Materia {
@@ -70,6 +77,7 @@ class StudyScreen extends StatefulWidget {
 
 class _StudyScreenState extends State<StudyScreen> {
   List<PastaEstudo> _pastas = [];
+  bool _showAnalysis = false;
 
   @override
   void initState() {
@@ -172,6 +180,9 @@ class _StudyScreenState extends State<StudyScreen> {
               background: _buildHeader(stats, xpAtualNoLevel, xpPorLevel),
             ),
           ),
+          SliverToBoxAdapter(
+            child: _buildAnalysisPanel(xpGlobal),
+          ),
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
             sliver: SliverGrid(
@@ -206,13 +217,8 @@ class _StudyScreenState extends State<StudyScreen> {
         children: [
           const SizedBox(height: 40),
           Text(
-            "PROGRESSO LEVEL ${stats['level']}",
-            style: const TextStyle(
-              color: Color(0xFFBB86FC),
-              fontWeight: FontWeight.w900,
-              fontSize: 18,
-              letterSpacing: 3,
-            ),
+            "PLAYER LEVEL ${stats['level']}",
+            style: const TextStyle(color: Color(0xFFBB86FC), fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 3),
           ),
           const SizedBox(height: 20),
           Container(
@@ -222,13 +228,6 @@ class _StudyScreenState extends State<StudyScreen> {
               color: const Color(0xFF161B22),
               borderRadius: BorderRadius.circular(25),
               border: Border.all(color: Colors.white10),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFFBB86FC).withOpacity(0.1),
-                  blurRadius: 20,
-                  spreadRadius: 2,
-                )
-              ],
             ),
             child: Column(
               children: [
@@ -245,19 +244,76 @@ class _StudyScreenState extends State<StudyScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      "$xpAtual XP",
-                      style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 12),
-                    ),
-                    Text(
-                      "$totalNecessario XP",
-                      style: const TextStyle(color: Colors.white38, fontSize: 12),
-                    ),
+                    Text("$xpAtual XP", style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 12)),
+                    Text("$totalNecessario XP", style: const TextStyle(color: Colors.white38, fontSize: 12)),
                   ],
                 ),
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAnalysisPanel(int xpGlobal) {
+    if (_pastas.isEmpty) return const SizedBox();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        children: [
+          GestureDetector(
+            onTap: () => setState(() => _showAnalysis = !_showAnalysis),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: const Color(0xFF161B22), borderRadius: BorderRadius.circular(15)),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(_showAnalysis ? Icons.analytics : Icons.analytics_outlined, color: Colors.white38, size: 18),
+                  const SizedBox(width: 10),
+                  const Text("ANÁLISE DE DESEMPENHO", style: TextStyle(color: Colors.white38, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                  Icon(_showAnalysis ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down, color: Colors.white38),
+                ],
+              ),
+            ),
+          ),
+          if (_showAnalysis) ...[
+            const SizedBox(height: 15),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(color: const Color(0xFF161B22), borderRadius: BorderRadius.circular(20)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("DISTRIBUIÇÃO DE FOCO", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 15),
+                  ..._pastas.map((p) {
+                    double perc = xpGlobal == 0 ? 0 : p.totalXP / xpGlobal;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(p.nome, style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                              Text("${(perc * 100).toStringAsFixed(1)}%", style: TextStyle(color: p.cor, fontSize: 11, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                          const SizedBox(height: 5),
+                          LinearProgressIndicator(value: perc, backgroundColor: Colors.white.withOpacity(0.05), color: p.cor, minHeight: 4),
+                        ],
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 10),
         ],
       ),
     );
@@ -472,7 +528,11 @@ class _DetalheMateriaScreenState extends State<DetalheMateriaScreen> {
                   style: IconButton.styleFrom(backgroundColor: widget.cor), 
                   onPressed: () {
                     if (_logController.text.isNotEmpty) {
-                      setState(() => widget.materia.logs.insert(0, EstudoLog(texto: _logController.text, data: "${DateTime.now().day}/${DateTime.now().month}")));
+                      setState(() => widget.materia.logs.insert(0, EstudoLog(
+                        texto: _logController.text, 
+                        data: "${DateTime.now().day}/${DateTime.now().month}",
+                        timestamp: DateTime.now(),
+                      )));
                       _logController.clear();
                     }
                   }

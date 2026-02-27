@@ -57,11 +57,10 @@ class _MainLayoutState extends State<MainLayout> {
 
   @override
   Widget build(BuildContext context) {
-    // Definimos as telas aqui
     final List<Widget> telas = [
       buildDashboard(),
       const StudyScreen(),
-      const AgendaScreen(), // Agora a Agenda gerencia seu próprio botão interno
+      const AgendaScreen(),
       const FinancasScreen(),
     ];
 
@@ -91,23 +90,11 @@ class _MainLayoutState extends State<MainLayout> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  "StudyPilot",
-                  style: TextStyle(
-                    fontWeight: FontWeight.w900,
-                    fontSize: 20,
-                    color: Colors.white,
-                    letterSpacing: -0.5,
-                  ),
+                Text("StudyPilot",
+                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: Colors.white, letterSpacing: -0.5),
                 ),
-                Text(
-                  "OPERATIONAL UNIT",
-                  style: TextStyle(
-                    fontSize: 8,
-                    color: Colors.white24,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.2,
-                  ),
+                Text("OPERATIONAL UNIT",
+                  style: TextStyle(fontSize: 8, color: Colors.white24, fontWeight: FontWeight.bold, letterSpacing: 1.2),
                 ),
               ],
             ),
@@ -121,16 +108,10 @@ class _MainLayoutState extends State<MainLayout> {
           Padding(
             padding: const EdgeInsets.only(right: 15, left: 5),
             child: GestureDetector(
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const ConfigScreen())
-              ),
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ConfigScreen())),
               child: Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withAlpha(13),
-                  shape: BoxShape.circle,
-                ),
+                decoration: BoxDecoration(color: Colors.white.withAlpha(13), shape: BoxShape.circle),
                 child: const Icon(Icons.settings_outlined, size: 22, color: kAccentColor),
               ),
             ),
@@ -141,11 +122,7 @@ class _MainLayoutState extends State<MainLayout> {
           child: Container(color: Colors.white.withAlpha(13), height: 1),
         ),
       ),
-      body: IndexedStack(
-        index: indiceAtual,
-        children: telas,
-      ),
-      // BOTÃO FLUTUANTE REMOVIDO DAQUI
+      body: IndexedStack(index: indiceAtual, children: telas),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: kBackgroundColor,
@@ -168,58 +145,194 @@ class _MainLayoutState extends State<MainLayout> {
     );
   }
 
+  // --- NOVA DASHBOARD ESTRUTURADA ---
+
   Widget buildDashboard() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 20),
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text("CENTRAL DE OPERAÇÕES",
-            style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: kSecondaryColor, letterSpacing: 2)),
-          const SizedBox(height: 20),
-          Expanded(
-            child: GridView.count(
-              crossAxisCount: 2,
-              crossAxisSpacing: 18,
-              mainAxisSpacing: 18,
-              children: [
-                _buildBlock("Estudos", "XP & Níveis", Icons.bolt_rounded, kAccentColor, () => mudarAba(1)),
-                _buildBlock("Agenda", "Prazos FIAP", Icons.calendar_today_rounded, const Color(0xFFCF6679), () => mudarAba(2)),
-                _buildBlock("Finanças", "Balanço", Icons.payments_rounded, kSecondaryColor, () => mudarAba(3)),
-                _buildBlock("Alarmes", "Foco Total", Icons.alarm_rounded, Colors.orangeAccent, () {}),
-              ],
-            ),
-          ),
+              style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: kSecondaryColor, letterSpacing: 2)),
+          const SizedBox(height: 15),
+
+          // 1. Atalhos Rápidos
+          _buildQuickAccessGrid(),
+
+          const SizedBox(height: 30),
+          
+          // 2. Agenda - Próximas tarefas
+          _buildSectionHeader("AGENDA: PRAZOS RECENTES", Icons.event_note_rounded),
+          _buildAgendaPreview(),
+
+          const SizedBox(height: 25),
+
+          // 3. Estudos - Ranking de XP por Pasta
+          _buildSectionHeader("ESTUDOS: PERFORMANCE POR PASTA", Icons.leaderboard_rounded),
+          _buildEstudosRanking(),
+
+          const SizedBox(height: 25),
+
+          // 4. Finanças - Resumo de Gastos
+          _buildSectionHeader("FINANÇAS: VISÃO MENSAL", Icons.account_balance_wallet_rounded),
+          _buildFinancasSummary(),
+          
+          const SizedBox(height: 30),
         ],
       ),
     );
   }
 
-  Widget _buildBlock(String title, String sub, IconData icon, Color color, VoidCallback onTap) {
+  // --- COMPONENTES DA DASHBOARD ---
+
+  Widget _buildSectionHeader(String title, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12, left: 5),
+      child: Row(
+        children: [
+          Icon(icon, size: 14, color: Colors.white24),
+          const SizedBox(width: 8),
+          Text(title, style: const TextStyle(fontSize: 10, color: Colors.white24, fontWeight: FontWeight.bold, letterSpacing: 1.1)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickAccessGrid() {
+    return GridView.count(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: 2,
+      crossAxisSpacing: 12,
+      mainAxisSpacing: 12,
+      childAspectRatio: 2.1, // Cards mais compactos
+      children: [
+        _buildSmallCard("Estudos", kAccentColor, Icons.bolt_rounded, () => mudarAba(1)),
+        _buildSmallCard("Agenda", const Color(0xFFCF6679), Icons.calendar_today_rounded, () => mudarAba(2)),
+        _buildSmallCard("Finanças", kSecondaryColor, Icons.payments_rounded, () => mudarAba(3)),
+        _buildSmallCard("Ajustes", Colors.blueGrey, Icons.settings_suggest_rounded, () {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const ConfigScreen()));
+        }),
+      ],
+    );
+  }
+
+  Widget _buildSmallCard(String label, Color color, IconData icon, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(28),
+      borderRadius: BorderRadius.circular(15),
       child: Container(
-        padding: const EdgeInsets.all(22),
         decoration: BoxDecoration(
           color: kCardColor,
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: Colors.white.withAlpha(8)),
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: Colors.white.withOpacity(0.05)),
         ),
-        child: Column(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: color.withAlpha(26), borderRadius: BorderRadius.circular(14)),
-              child: Icon(icon, color: color, size: 26),
-            ),
-            const SizedBox(height: 14),
-            Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            Text(sub, style: const TextStyle(color: Colors.white30, fontSize: 10)),
+            Icon(icon, color: color, size: 18),
+            const SizedBox(width: 8),
+            Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildAgendaPreview() {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(color: kCardColor, borderRadius: BorderRadius.circular(22)),
+      child: Column(
+        children: [
+          _buildAgendaItem("Checkpoint 2 - Mobile", "Hoje, 23:59", Colors.redAccent),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Divider(color: Colors.white10, height: 1),
+          ),
+          _buildAgendaItem("Global Solution FIAP", "Em 12 dias", Colors.amber),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAgendaItem(String task, String date, Color color) {
+    return Row(
+      children: [
+        Container(width: 4, height: 20, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(10))),
+        const SizedBox(width: 12),
+        Expanded(child: Text(task, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500))),
+        Text(date, style: const TextStyle(color: Colors.white38, fontSize: 11)),
+      ],
+    );
+  }
+
+  Widget _buildEstudosRanking() {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(color: kCardColor, borderRadius: BorderRadius.circular(22)),
+      child: Column(
+        children: [
+          _buildRankingItem("Desenvolvimento Cross-Platform", 0.72, kAccentColor),
+          const SizedBox(height: 15),
+          _buildRankingItem("Engenharia de Software", 0.35, kSecondaryColor),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRankingItem(String pasta, double progresso, Color color) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(pasta, style: const TextStyle(fontSize: 12, color: Colors.white70)),
+            Text("${(progresso * 100).toInt()}%", style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        const SizedBox(height: 8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: LinearProgressIndicator(
+            value: progresso, 
+            backgroundColor: Colors.white.withOpacity(0.05), 
+            color: color, 
+            minHeight: 6
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFinancasSummary() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: kCardColor,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: kSecondaryColor.withOpacity(0.1)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("GASTOS TOTAIS (FEVEREIRO)", style: TextStyle(color: Colors.white38, fontSize: 9, fontWeight: FontWeight.bold)),
+              SizedBox(height: 4),
+              Text("R\$ 1.420,50", style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
+            ],
+          ),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: kSecondaryColor.withOpacity(0.1), shape: BoxShape.circle),
+            child: const Icon(Icons.trending_down, color: kSecondaryColor, size: 20),
+          ),
+        ],
       ),
     );
   }
