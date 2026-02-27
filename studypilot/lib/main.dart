@@ -57,10 +57,11 @@ class _MainLayoutState extends State<MainLayout> {
 
   @override
   Widget build(BuildContext context) {
+    // Definimos as telas aqui
     final List<Widget> telas = [
       buildDashboard(),
       const StudyScreen(),
-      const AgendaScreen(),
+      const AgendaScreen(), // Agora a Agenda gerencia seu próprio botão interno
       const FinancasScreen(),
     ];
 
@@ -144,13 +145,7 @@ class _MainLayoutState extends State<MainLayout> {
         index: indiceAtual,
         children: telas,
       ),
-      floatingActionButton: (indiceAtual == 2 || indiceAtual == 3)
-          ? FloatingActionButton(
-              onPressed: () {},
-              backgroundColor: kAccentColor,
-              child: const Icon(Icons.add, color: Colors.black),
-            )
-          : null,
+      // BOTÃO FLUTUANTE REMOVIDO DAQUI
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: kBackgroundColor,
