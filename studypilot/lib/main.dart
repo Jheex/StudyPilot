@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'study_screen.dart';
 import 'agenda_screen.dart';
 import 'financas_screen.dart';
 import 'config_screen.dart';
 
-const Color kBackgroundColor = Color(0xFF121421); 
-const Color kCardColor = Color(0xFF1C1F33);       
-const Color kAccentColor = Color(0xFFBB86FC);     
-const Color kSecondaryColor = Color(0xFF03DAC6);  
+// Constantes Globais de Estilo
+const Color kBackgroundColor = Color(0xFF121421);
+const Color kCardColor = Color(0xFF1C1F33);
+const Color kAccentColor = Color(0xFFBB86FC);
+const Color kSecondaryColor = Color(0xFF03DAC6);
 
-void main() => runApp(const StudyPilotApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('pt_BR', null);
+  runApp(const StudyPilotApp());
+}
 
 class StudyPilotApp extends StatelessWidget {
   const StudyPilotApp({super.key});
@@ -18,13 +24,14 @@ class StudyPilotApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      title: 'StudyPilot',
       theme: ThemeData(
         useMaterial3: true,
-        brightness: Brightness.dark, // Consistência 1
+        brightness: Brightness.dark,
         scaffoldBackgroundColor: kBackgroundColor,
         colorScheme: ColorScheme.fromSeed(
           seedColor: kAccentColor,
-          brightness: Brightness.dark, // Consistência 2 (Resolve o erro da imagem)
+          brightness: Brightness.dark,
           primary: kAccentColor,
           surface: kCardColor,
         ),
@@ -62,10 +69,9 @@ class _MainLayoutState extends State<MainLayout> {
         backgroundColor: kBackgroundColor,
         elevation: 0,
         toolbarHeight: 80,
-        centerTitle: false, // Garante que tudo comece da esquerda
+        centerTitle: false,
         title: Row(
           children: [
-            // LOGO/AVATAR DISCRETO
             Container(
               width: 42,
               height: 42,
@@ -80,7 +86,6 @@ class _MainLayoutState extends State<MainLayout> {
               child: const Center(child: Text("🚀", style: TextStyle(fontSize: 20))),
             ),
             const SizedBox(width: 12),
-            // NOME DO APP NA ESQUERDA
             const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
@@ -108,23 +113,21 @@ class _MainLayoutState extends State<MainLayout> {
           ],
         ),
         actions: [
-          // SINO DE NOTIFICAÇÕES
           IconButton(
             onPressed: () {},
             icon: const Icon(Icons.notifications_none_rounded, color: Colors.white70),
           ),
-          // ENGRENAGEM DE CONFIGURAÇÕES
           Padding(
             padding: const EdgeInsets.only(right: 15, left: 5),
             child: GestureDetector(
               onTap: () => Navigator.push(
-                context, 
+                context,
                 MaterialPageRoute(builder: (context) => const ConfigScreen())
               ),
               child: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.05),
+                  color: Colors.white.withAlpha(13),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.settings_outlined, size: 22, color: kAccentColor),
@@ -132,24 +135,30 @@ class _MainLayoutState extends State<MainLayout> {
             ),
           ),
         ],
-        // LINHA SUTIL DE SEPARAÇÃO
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(color: Colors.white.withValues(alpha: 0.05), height: 1),
+          child: Container(color: Colors.white.withAlpha(13), height: 1),
         ),
       ),
       body: IndexedStack(
         index: indiceAtual,
         children: telas,
       ),
+      floatingActionButton: (indiceAtual == 2 || indiceAtual == 3)
+          ? FloatingActionButton(
+              onPressed: () {},
+              backgroundColor: kAccentColor,
+              child: const Icon(Icons.add, color: Colors.black),
+            )
+          : null,
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: kBackgroundColor,
-          border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.05))),
+          border: Border(top: BorderSide(color: Colors.white.withAlpha(13))),
         ),
         child: NavigationBar(
           backgroundColor: kBackgroundColor,
-          indicatorColor: kAccentColor.withValues(alpha: 0.1),
+          indicatorColor: kAccentColor.withAlpha(26),
           selectedIndex: indiceAtual,
           onDestinationSelected: mudarAba,
           height: 75,
@@ -170,7 +179,7 @@ class _MainLayoutState extends State<MainLayout> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("CENTRAL DE OPERAÇÕES", 
+          const Text("CENTRAL DE OPERAÇÕES",
             style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: kSecondaryColor, letterSpacing: 2)),
           const SizedBox(height: 20),
           Expanded(
@@ -200,7 +209,7 @@ class _MainLayoutState extends State<MainLayout> {
         decoration: BoxDecoration(
           color: kCardColor,
           borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.03)),
+          border: Border.all(color: Colors.white.withAlpha(8)),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -208,7 +217,7 @@ class _MainLayoutState extends State<MainLayout> {
           children: [
             Container(
               padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(14)),
+              decoration: BoxDecoration(color: color.withAlpha(26), borderRadius: BorderRadius.circular(14)),
               child: Icon(icon, color: color, size: 26),
             ),
             const SizedBox(height: 14),
