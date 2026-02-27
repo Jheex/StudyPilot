@@ -1,121 +1,95 @@
 import 'package:flutter/material.dart';
+import 'study_screen.dart';
+import 'agenda_screen.dart';   // Novo import
+import 'financas_screen.dart'; // Novo import
 
-void main() {
-  runApp(const MyApp());
-}
+void main() => runApp(const StudyPilotApp());
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  // This widget is the root of your application.
+class StudyPilotApp extends StatelessWidget {
+  const StudyPilotApp({super.key});
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(brightness: Brightness.dark, useMaterial3: true, scaffoldBackgroundColor: const Color(0xFF0A0C10)),
+      home: const MainLayout(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
-
+class MainLayout extends StatefulWidget {
+  const MainLayout({super.key});
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<MainLayout> createState() => _MainLayoutState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _MainLayoutState extends State<MainLayout> {
+  int indiceAtual = 0;
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
+  void mudarAba(int index) => setState(() => indiceAtual = index);
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
+    final List<Widget> telas = [
+      buildDashboard(),       // Aba 0
+      const StudyScreen(),    // Aba 1
+      const AgendaScreen(),   // Aba 2
+      const FinancasScreen(), // Aba 3
+    ];
+
     return Scaffold(
       appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+        backgroundColor: Colors.transparent,
+        title: const Text("StudyPilot", style: TextStyle(fontWeight: FontWeight.w900)),
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
+      body: IndexedStack(index: indiceAtual, children: telas),
+      bottomNavigationBar: NavigationBar(
+        backgroundColor: const Color(0xFF0A0C10),
+        indicatorColor: const Color(0xFFBB86FC).withOpacity(0.2),
+        selectedIndex: indiceAtual,
+        onDestinationSelected: mudarAba,
+        destinations: const [
+          NavigationDestination(icon: Icon(Icons.grid_view_rounded), label: 'Home'),
+          NavigationDestination(icon: Icon(Icons.bolt_rounded), label: 'Estudos'),
+          NavigationDestination(icon: Icon(Icons.calendar_today_rounded), label: 'Agenda'),
+          NavigationDestination(icon: Icon(Icons.payments_rounded), label: 'Finanças'),
+        ],
+      ),
+    );
+  }
+
+  Widget buildDashboard() {
+    return GridView.count(
+      padding: const EdgeInsets.all(20),
+      crossAxisCount: 2,
+      crossAxisSpacing: 15,
+      mainAxisSpacing: 15,
+      children: [
+        _buildBlock("Estudos", "XP & Nível", Icons.bolt_rounded, const Color(0xFFBB86FC), () => mudarAba(1)),
+        _buildBlock("Agenda", "Prazos", Icons.calendar_today_rounded, const Color(0xFFCF6679), () => mudarAba(2)),
+        _buildBlock("Finanças", "Controlo", Icons.payments_rounded, Colors.greenAccent, () => mudarAba(3)),
+        _buildBlock("Alarmes", "Foco", Icons.alarm_rounded, const Color(0xFF03DAC6), () {}),
+      ],
+    );
+  }
+
+  Widget _buildBlock(String t, String s, IconData i, Color c, VoidCallback o) {
+    return InkWell(
+      onTap: o,
+      borderRadius: BorderRadius.circular(28),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(color: const Color(0xFF161B22), borderRadius: BorderRadius.circular(28)),
         child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: .center,
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
+            Icon(i, color: c, size: 30),
+            const SizedBox(height: 10),
+            Text(t, style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text(s, style: const TextStyle(color: Colors.white38, fontSize: 10)),
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
       ),
     );
   }
