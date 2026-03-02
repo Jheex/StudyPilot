@@ -9,11 +9,10 @@ class FinancasScreen extends StatefulWidget {
 }
 
 class _FinancasScreenState extends State<FinancasScreen> {
-  // Singleton do AppData
   final AppData appData = AppData(); 
   bool saldoVisivel = true;
 
-  // --- GERENCIADOR DE CATEGORIAS (CRUD) ---
+  // --- GERENCIAR CATEGORIAS (CRUD) ---
   void _gerenciarCategorias() {
     showModalBottomSheet(
       context: context,
@@ -53,7 +52,6 @@ class _FinancasScreenState extends State<FinancasScreen> {
                                   icon: const Icon(Icons.delete_outline,
                                       size: 20, color: Colors.redAccent),
                                   onPressed: () {
-                                    // Impede deletar se for a última categoria
                                     if (appData.categoriasGastos.length > 1) {
                                       setState(() => appData.removerCategoriaFinancas(cat));
                                       setModalState(() {});
@@ -186,8 +184,10 @@ class _FinancasScreenState extends State<FinancasScreen> {
                   if (!isEntrada)
                     DropdownButtonFormField<String>(
                       dropdownColor: const Color(0xFF1C1F33),
-                      // AJUSTE: Usando initialValue ou simplesmente garantindo o valor atual
-                      value: categoriaSelecionada,
+                      // Atualizado de 'value' para 'initialValue' para as versões novas do Flutter
+                      initialValue: appData.categoriasGastos.containsKey(categoriaSelecionada) 
+                          ? categoriaSelecionada 
+                          : appData.categoriasGastos.keys.first,
                       items: appData.categoriasGastos.keys
                           .map((c) => DropdownMenuItem(value: c, child: Text(c)))
                           .toList(),
@@ -304,7 +304,7 @@ class _FinancasScreenState extends State<FinancasScreen> {
       decoration: BoxDecoration(
           color: const Color(0xFF1C1F33),
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.white.withOpacity(0.05))),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.05))), // CORRIGIDO
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           const Text("Saldo Disponível",
@@ -335,9 +335,9 @@ class _FinancasScreenState extends State<FinancasScreen> {
         child: Container(
             padding: const EdgeInsets.symmetric(vertical: 15),
             decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1), // CORRIGIDO
                 borderRadius: BorderRadius.circular(15),
-                border: Border.all(color: color.withOpacity(0.2))),
+                border: Border.all(color: color.withValues(alpha: 0.2))), // CORRIGIDO
             child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
               Icon(icon, color: color, size: 20),
               const SizedBox(width: 8),
@@ -361,7 +361,7 @@ class _FinancasScreenState extends State<FinancasScreen> {
           const SizedBox(height: 8),
           LinearProgressIndicator(
               value: percent,
-              backgroundColor: Colors.white.withOpacity(0.05),
+              backgroundColor: Colors.white.withValues(alpha: 0.05), // CORRIGIDO
               color: const Color(0xFFBB86FC),
               minHeight: 4)
         ]));
