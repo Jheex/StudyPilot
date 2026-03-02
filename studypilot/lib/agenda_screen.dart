@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'app_data.dart'; // ✅ IMPORTANTE: Importando o cérebro do app
+import 'app_data.dart'; // ✅ Certifique-se que o arquivo app_data.dart existe
 
 class AgendaScreen extends StatefulWidget {
   const AgendaScreen({super.key});
@@ -17,14 +17,8 @@ class _AgendaScreenState extends State<AgendaScreen> {
   DateTime _diaSelecionado = DateTime.now();
   String _filtroAtivo = 'Todos';
   List<Compromisso> _agenda = [];
+  List<Categoria> _categorias = [];
   late Timer _timer;
-
-  final List<Categoria> _categorias = [
-    Categoria(nome: 'Challenge', cor: const Color(0xFFBB86FC)),
-    Categoria(nome: 'Checkpoint', cor: Colors.amber),
-    Categoria(nome: 'Global', cor: const Color(0xFF03DAC6)),
-    Categoria(nome: 'Pessoal', cor: Colors.pinkAccent),
-  ];
 
   @override
   void initState() {
@@ -45,22 +39,45 @@ class _AgendaScreenState extends State<AgendaScreen> {
 
   Future<void> _carregarDados() async {
     final prefs = await SharedPreferences.getInstance();
+    
+    // Carregar Categorias Personalizadas
+    final String? catData = prefs.getString('agenda_categorias');
+    if (catData != null) {
+      final List decodeCat = jsonDecode(catData);
+      _categorias = decodeCat.map((item) => Categoria.fromJson(item)).toList();
+    } else {
+      // Categorias Iniciais se estiver vazio
+      _categorias = [
+        Categoria(nome: 'Todos', cor: Colors.grey),
+        Categoria(nome: 'Lembrete', cor: const Color(0xFF03DAC6)),
+        Categoria(nome: 'Estudo', cor: const Color(0xFFBB86FC)),
+        Categoria(nome: 'Aniversário', cor: Colors.pinkAccent),
+        Categoria(nome: 'Feriado', cor: Colors.orange),
+      ];
+    }
+
+    // Carregar Agenda
     final String? data = prefs.getString('agenda_data');
     if (data != null) {
       final List decode = jsonDecode(data);
       setState(() {
         _agenda = decode.map((item) => Compromisso.fromJson(item)).toList();
       });
-      // ✅ SINCRONIZA COM O DASHBOARD AO ABRIR O APP
       AppData().atualizarAgenda(_agenda);
     }
   }
 
   Future<void> _salvarDados() async {
     final prefs = await SharedPreferences.getInstance();
+    
+    // Salvar Agenda
     final String data = jsonEncode(_agenda.map((e) => e.toJson()).toList());
     await prefs.setString('agenda_data', data);
-    // ✅ SINCRONIZA COM O DASHBOARD SEMPRE QUE SALVAR/ALTERAR
+    
+    // Salvar Categorias
+    final String catData = jsonEncode(_categorias.map((e) => e.toJson()).toList());
+    await prefs.setString('agenda_categorias', catData);
+
     AppData().atualizarAgenda(_agenda);
   }
 
@@ -73,6 +90,14 @@ class _AgendaScreenState extends State<AgendaScreen> {
     if (dataComparacao.isAtSameMomentAs(dataInicio)) return true;
     if (dataComparacao.isBefore(dataInicio)) return false;
 
+    // Lógica para repetição por intervalo de dias (Ex: "17 Dias")
+    if (item.repeticao.contains('Dias')) {
+      int intervalo = int.tryParse(item.repeticao.split(' ')[0]) ?? 0;
+      if (intervalo <= 0) return false;
+      final diferencaEmDias = dataComparacao.difference(dataInicio).inDays;
+      return diferencaEmDias % intervalo == 0;
+    }
+
     switch (item.repeticao) {
       case 'Diária':
         return true;
@@ -80,6 +105,8 @@ class _AgendaScreenState extends State<AgendaScreen> {
         return dataInicio.weekday == dataComparacao.weekday;
       case 'Mensal':
         return dataInicio.day == dataComparacao.day;
+      case 'Anual':
+        return dataInicio.day == dataComparacao.day && dataInicio.month == dataComparacao.month;
       default:
         return false;
     }
@@ -111,6 +138,13 @@ class _AgendaScreenState extends State<AgendaScreen> {
   void _abrirGerenciadorCategorias() {
     final TextEditingController catController = TextEditingController();
     Color corSelecionada = Colors.redAccent;
+    
+    // Lista de cores para as bolinhas
+    final List<Color> paletaCores = [
+      Colors.redAccent, Colors.orangeAccent, Colors.yellowAccent,
+      Colors.greenAccent, Colors.blueAccent, Colors.purpleAccent,
+      Colors.pinkAccent, const Color(0xFF03DAC6), const Color(0xFFBB86FC)
+    ];
 
     showModalBottomSheet(
       context: context,
@@ -125,24 +159,73 @@ class _AgendaScreenState extends State<AgendaScreen> {
             children: [
               const Text("GERENCIAR CATEGORIAS", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
               const SizedBox(height: 15),
-              ..._categorias.map((c) => ListTile(
-                leading: CircleAvatar(backgroundColor: c.cor, radius: 8),
-                title: Text(c.nome, style: const TextStyle(color: Colors.white)),
-                trailing: IconButton(
-                  icon: const Icon(Icons.delete_sweep, color: Colors.white24),
-                  onPressed: () => setState(() => _categorias.remove(c)),
+              
+              // Lista de categorias existentes
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 180),
+                child: ListView(
+                  shrinkWrap: true,
+                  children: _categorias.map((c) => ListTile(
+                    leading: CircleAvatar(backgroundColor: c.cor, radius: 6),
+                    title: Text(c.nome, style: const TextStyle(color: Colors.white, fontSize: 14)),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.delete_outline, color: Colors.white24),
+                      onPressed: () {
+                        setState(() => _categorias.remove(c));
+                        setModalState(() {});
+                        _salvarDados();
+                      },
+                    ),
+                  )).toList(),
                 ),
-              )),
-              TextField(controller: catController, style: const TextStyle(color: Colors.white), decoration: _inputStyle("Nova categoria")),
+              ),
+              
+              const Divider(color: Colors.white10, height: 30),
+              
+              // Seletor de Cores (Bolinhas)
+              const Text("Escolha uma cor:", style: TextStyle(color: Colors.white54, fontSize: 12)),
               const SizedBox(height: 10),
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 10,
+                children: paletaCores.map((cor) => GestureDetector(
+                  onTap: () => setModalState(() => corSelecionada = cor),
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: corSelecionada == cor ? Colors.white : Colors.transparent,
+                        width: 2
+                      ),
+                    ),
+                    child: CircleAvatar(backgroundColor: cor, radius: 12),
+                  ),
+                )).toList(),
+              ),
+              
+              const SizedBox(height: 15),
+              TextField(
+                controller: catController, 
+                style: const TextStyle(color: Colors.white), 
+                decoration: _inputStyle("Nome da nova categoria")
+              ),
+              const SizedBox(height: 15),
               ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: corSelecionada,
+                  minimumSize: const Size(double.infinity, 45)
+                ),
                 onPressed: () {
                   if (catController.text.isNotEmpty) {
-                    setState(() => _categorias.add(Categoria(nome: catController.text, cor: corSelecionada)));
+                    setState(() {
+                      _categorias.add(Categoria(nome: catController.text, cor: corSelecionada));
+                    });
+                    _salvarDados();
                     Navigator.pop(context);
                   }
                 },
-                child: const Text("ADICIONAR"),
+                child: const Text("ADICIONAR CATEGORIA", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
               )
             ],
           ),
@@ -155,8 +238,18 @@ class _AgendaScreenState extends State<AgendaScreen> {
     final tController = TextEditingController();
     final mController = TextEditingController();
     final oController = TextEditingController();
-    Categoria? catSel = _categorias.isNotEmpty ? _categorias.first : null;
+    final intervalController = TextEditingController(text: '1');
+    
+    // ✅ MELHORIA: Busca a referência exata da lista para evitar bugs de cor
+    Categoria? catSel;
+    try {
+      catSel = _categorias.firstWhere((c) => c.nome.toLowerCase() == 'todos');
+    } catch (_) {
+      catSel = _categorias.isNotEmpty ? _categorias.first : null;
+    }
+
     String repSel = 'Nenhuma';
+    bool mostrarCampoIntervalo = false;
 
     showModalBottomSheet(
       context: context,
@@ -173,10 +266,12 @@ class _AgendaScreenState extends State<AgendaScreen> {
               children: [
                 const Text("NOVA MISSÃO", style: TextStyle(color: Color(0xFFBB86FC), fontWeight: FontWeight.bold)),
                 const SizedBox(height: 15),
-                TextField(controller: tController, style: const TextStyle(color: Colors.white), decoration: _inputStyle("Título (ex: Dentista)")),
+                TextField(controller: tController, style: const TextStyle(color: Colors.white), decoration: _inputStyle("Título")),
                 const SizedBox(height: 10),
-                TextField(controller: mController, style: const TextStyle(color: Colors.white), decoration: _inputStyle("Matéria / Local")),
+                TextField(controller: mController, style: const TextStyle(color: Colors.white), decoration: _inputStyle("Local / Descrição")),
                 const SizedBox(height: 15),
+                
+                // Seletor de Data e Repetição
                 Row(
                   children: [
                     Expanded(
@@ -184,8 +279,8 @@ class _AgendaScreenState extends State<AgendaScreen> {
                         onTap: () => _selecionarDataHora(context, setModalState),
                         child: Container(
                           padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(12)),
-                          child: Text(DateFormat('dd/MM - HH:mm').format(_diaSelecionado), style: const TextStyle(color: Colors.white)),
+                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(12)),
+                          child: Text(DateFormat('dd/MM/yyyy - HH:mm').format(_diaSelecionado), style: const TextStyle(color: Colors.white)),
                         ),
                       ),
                     ),
@@ -193,44 +288,84 @@ class _AgendaScreenState extends State<AgendaScreen> {
                     DropdownButton<String>(
                       value: repSel,
                       dropdownColor: const Color(0xFF1C1F33),
-                      items: ['Nenhuma', 'Diária', 'Semanal', 'Mensal'].map((s) => DropdownMenuItem(value: s, child: Text(s, style: const TextStyle(color: Colors.white)))).toList(),
-                      onChanged: (v) => setModalState(() => repSel = v!),
+                      items: ['Nenhuma', 'Diária', 'Semanal', 'Mensal', 'Anual', 'Personalizado']
+                          .map((s) => DropdownMenuItem(value: s, child: Text(s, style: const TextStyle(color: Colors.white)))).toList(),
+                      onChanged: (v) {
+                        setModalState(() {
+                          repSel = v!;
+                          mostrarCampoIntervalo = (v == 'Personalizado');
+                        });
+                      },
                     ),
                   ],
                 ),
+                
+                if (mostrarCampoIntervalo) ...[
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      const Text("Repetir a cada: ", style: TextStyle(color: Colors.white70)),
+                      SizedBox(
+                        width: 50,
+                        child: TextField(
+                          controller: intervalController,
+                          keyboardType: TextInputType.number,
+                          style: const TextStyle(color: Colors.white),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      const Text(" dias", style: TextStyle(color: Colors.white70)),
+                    ],
+                  ),
+                ],
+                
                 const SizedBox(height: 15),
+                const Text("CATEGORIA", style: TextStyle(color: Colors.white54, fontSize: 12)),
+                const SizedBox(height: 8),
+                
+                // ✅ SELETOR DE CATEGORIAS (Chips Coloridos)
                 Wrap(
                   spacing: 8,
                   children: _categorias.map((cat) => ChoiceChip(
                     label: Text(cat.nome),
                     selected: catSel == cat,
                     onSelected: (s) => setModalState(() => catSel = cat),
-                    selectedColor: cat.cor,
+                    selectedColor: cat.cor, // ✅ A cor que você escolheu na bolinha!
+                    checkmarkColor: Colors.black,
+                    labelStyle: TextStyle(
+                      color: catSel == cat ? Colors.black : Colors.white,
+                      fontWeight: FontWeight.bold
+                    ),
                   )).toList(),
                 ),
+                
                 const SizedBox(height: 15),
-                TextField(controller: oController, maxLines: 3, style: const TextStyle(color: Colors.white), decoration: _inputStyle("Observações")),
+                TextField(controller: oController, maxLines: 2, style: const TextStyle(color: Colors.white), decoration: _inputStyle("Observações")),
                 const SizedBox(height: 20),
+                
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF03DAC6), minimumSize: const Size(double.infinity, 50)),
                   onPressed: () {
                     if (tController.text.isNotEmpty && catSel != null) {
+                      String repeticaoFinal = repSel;
+                      if (repSel == 'Personalizado') repeticaoFinal = "${intervalController.text} Dias";
+
                       setState(() {
                         _agenda.add(Compromisso(
                           id: DateTime.now().millisecondsSinceEpoch.toString(),
                           titulo: tController.text,
-                          materia: mController.text,
+                          materia: mController.text, // Local/Descrição
                           dataHora: _diaSelecionado,
-                          categoria: catSel!,
+                          categoria: catSel!, // ✅ Salva a categoria com a cor certa
                           observacoes: oController.text,
-                          repeticao: repSel,
+                          repeticao: repeticaoFinal,
                         ));
                       });
-                      _salvarDados(); // ✅ Já chama a sincronização internamente
+                      _salvarDados();
                       Navigator.pop(context);
                     }
                   },
-                  child: const Text("SALVAR", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                  child: const Text("SALVAR MISSÃO", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
                 )
               ],
             ),
@@ -328,17 +463,44 @@ class _AgendaScreenState extends State<AgendaScreen> {
   }
 
   Widget _buildFiltros() {
+    // Criamos uma lista de categorias que inclui uma categoria "virtual" para o 'Todos'
+    final categoriasParaFiltro = [
+      Categoria(nome: 'Todos', cor: const Color(0xFFBB86FC)), // Cor de destaque do seu app
+      ..._categorias
+    ];
+
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
-        children: ['Todos', ..._categorias.map((c) => c.nome)].map((f) => Padding(
-          padding: const EdgeInsets.only(right: 8),
-          child: ChoiceChip(
-            label: Text(f, style: const TextStyle(fontSize: 12)),
-            selected: _filtroAtivo == f,
-            onSelected: (s) => setState(() => _filtroAtivo = f),
-          ),
-        )).toList(),
+        children: categoriasParaFiltro.map((cat) {
+          final bool isSelected = _filtroAtivo == cat.nome;
+          
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: ChoiceChip(
+              label: Text(
+                cat.nome, 
+                style: TextStyle(
+                  color: isSelected ? Colors.black : Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12
+                )
+              ),
+              selected: isSelected,
+              onSelected: (s) => setState(() => _filtroAtivo = cat.nome),
+              // ✅ A MÁGICA ESTÁ AQUI: Usando a cor da categoria quando selecionado
+              selectedColor: cat.cor,
+              backgroundColor: const Color(0xFF1C1F33),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              checkmarkColor: Colors.black,
+              // Remove a sombra/borda cinza padrão
+              side: BorderSide(
+                color: isSelected ? cat.cor : Colors.white10,
+                width: 1
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
@@ -354,35 +516,92 @@ class _AgendaScreenState extends State<AgendaScreen> {
         final item = filtrados[index];
         return Dismissible(
           key: Key(item.id),
+          direction: DismissDirection.endToStart, // Desliza da direita para a esquerda
           onDismissed: (d) {
             setState(() => _agenda.remove(item));
-            _salvarDados(); // ✅ Sincroniza ao deletar
+            _salvarDados();
           },
-          background: Container(color: Colors.red, alignment: Alignment.centerRight, child: const Icon(Icons.delete, color: Colors.white)),
+          background: Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            decoration: BoxDecoration(
+              color: Colors.redAccent,
+              borderRadius: BorderRadius.circular(15),
+            ),
+            alignment: Alignment.centerRight,
+            padding: const EdgeInsets.only(right: 20),
+            child: const Icon(Icons.delete, color: Colors.white),
+          ),
           child: Container(
             margin: const EdgeInsets.only(bottom: 10),
-            decoration: BoxDecoration(color: const Color(0xFF1C1F33), borderRadius: BorderRadius.circular(15)),
-            child: ExpansionTile(
-              tilePadding: const EdgeInsets.symmetric(horizontal: 12),
-              leading: Checkbox(
-                value: item.concluido,
-                activeColor: const Color(0xFF03DAC6),
-                onChanged: (v) {
-                  setState(() => item.concluido = v!);
-                  _salvarDados(); // ✅ Sincroniza ao marcar como concluído
-                }
-              ),
-              title: Text(item.titulo, style: TextStyle(color: Colors.white, decoration: item.concluido ? TextDecoration.lineThrough : null)),
-              subtitle: Text("${DateFormat('HH:mm').format(item.dataHora)} - ${item.materia}", style: const TextStyle(color: Colors.white24, fontSize: 11)),
-              children: [
-                if (item.observacoes.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Align(alignment: Alignment.centerLeft, child: Text(item.observacoes, style: const TextStyle(color: Colors.white70))),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1C1F33), 
+              borderRadius: BorderRadius.circular(15),
+              // ✅ BARRA LATERAL COM A COR DA CATEGORIA
+              border: Border(left: BorderSide(color: item.categoria.cor, width: 6)),
+            ),
+            child: Theme(
+              // Remove as linhas que o ExpansionTile cria por padrão
+              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+              child: ExpansionTile(
+                tilePadding: const EdgeInsets.symmetric(horizontal: 12),
+                leading: Checkbox(
+                  value: item.concluido,
+                  // ✅ CHECKBOX COM A COR DA CATEGORIA
+                  activeColor: item.categoria.cor,
+                  side: const BorderSide(color: Colors.white30, width: 1.5),
+                  onChanged: (v) {
+                    setState(() => item.concluido = v!);
+                    _salvarDados();
+                  }
+                ),
+                title: Text(
+                  item.titulo, 
+                  style: TextStyle(
+                    color: Colors.white, 
+                    fontWeight: FontWeight.w500,
+                    decoration: item.concluido ? TextDecoration.lineThrough : null
+                  )
+                ),
+                // ✅ SUBTÍTULO COM LOCAL/DESCRIÇÃO
+                subtitle: Text(
+                  "${DateFormat('HH:mm').format(item.dataHora)} - ${item.materia}", 
+                  style: const TextStyle(color: Colors.white38, fontSize: 12)
+                ),
+                iconColor: Colors.white54,
+                collapsedIconColor: Colors.white24,
+                children: [
+                  if (item.observacoes.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Align(
+                        alignment: Alignment.centerLeft, 
+                        child: Text(
+                          item.observacoes, 
+                          style: const TextStyle(color: Colors.white70, fontSize: 14)
+                        )
+                      ),
+                    ),
+                  ListTile(
+                    dense: true,
+                    title: Text(
+                      "Repetição: ${item.repeticao}", 
+                      style: const TextStyle(color: Colors.amber, fontSize: 12)
+                    ),
+                    // ✅ NOME DA CATEGORIA COLORIDO NO FINAL
+                    trailing: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: item.categoria.cor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8)
+                      ),
+                      child: Text(
+                        item.categoria.nome.toUpperCase(), 
+                        style: TextStyle(color: item.categoria.cor, fontSize: 10, fontWeight: FontWeight.bold)
+                      ),
+                    ),
                   ),
-                if (item.repeticao != 'Nenhuma')
-                  ListTile(title: Text("Repetição: ${item.repeticao}", style: const TextStyle(color: Colors.amber, fontSize: 12))),
-              ],
+                ],
+              ),
             ),
           ),
         );
