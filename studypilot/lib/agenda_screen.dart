@@ -3,64 +3,7 @@ import 'package:intl/intl.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-
-// --- MODELOS ---
-
-class Categoria {
-  String nome;
-  Color cor;
-  Categoria({required this.nome, required this.cor});
-
-  // Corrigido para toARGB32() para evitar erro de deprecated
-  Map<String, dynamic> toJson() => {'nome': nome, 'cor': cor.toARGB32()};
-  
-  factory Categoria.fromJson(Map<String, dynamic> json) => 
-      Categoria(nome: json['nome'], cor: Color(json['cor']));
-}
-
-class Compromisso {
-  final String id;
-  final String titulo;
-  final String materia;
-  final DateTime dataHora;
-  final Categoria categoria;
-  final String observacoes;
-  final String repeticao;
-  bool concluido;
-
-  Compromisso({
-    required this.id,
-    required this.titulo,
-    required this.materia,
-    required this.dataHora,
-    required this.categoria,
-    this.observacoes = '',
-    this.repeticao = 'Nenhuma',
-    this.concluido = false,
-  });
-
-  Map<String, dynamic> toJson() => {
-    'id': id,
-    'titulo': titulo,
-    'materia': materia,
-    'dataHora': dataHora.toIso8601String(),
-    'categoria': categoria.toJson(),
-    'observacoes': observacoes,
-    'repeticao': repeticao,
-    'concluido': concluido,
-  };
-
-  factory Compromisso.fromJson(Map<String, dynamic> json) => Compromisso(
-    id: json['id'],
-    titulo: json['titulo'],
-    materia: json['materia'],
-    dataHora: DateTime.parse(json['dataHora']),
-    categoria: Categoria.fromJson(json['categoria']),
-    observacoes: json['observacoes'] ?? '',
-    repeticao: json['repeticao'] ?? 'Nenhuma',
-    concluido: json['concluido'] ?? false,
-  );
-}
+import 'app_data.dart'; // ✅ IMPORTANTE: Importando o cérebro do app
 
 class AgendaScreen extends StatefulWidget {
   const AgendaScreen({super.key});
@@ -108,6 +51,8 @@ class _AgendaScreenState extends State<AgendaScreen> {
       setState(() {
         _agenda = decode.map((item) => Compromisso.fromJson(item)).toList();
       });
+      // ✅ SINCRONIZA COM O DASHBOARD AO ABRIR O APP
+      AppData().atualizarAgenda(_agenda);
     }
   }
 
@@ -115,6 +60,8 @@ class _AgendaScreenState extends State<AgendaScreen> {
     final prefs = await SharedPreferences.getInstance();
     final String data = jsonEncode(_agenda.map((e) => e.toJson()).toList());
     await prefs.setString('agenda_data', data);
+    // ✅ SINCRONIZA COM O DASHBOARD SEMPRE QUE SALVAR/ALTERAR
+    AppData().atualizarAgenda(_agenda);
   }
 
   // --- LÓGICA DE EXIBIÇÃO ---
@@ -279,7 +226,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
                           repeticao: repSel,
                         ));
                       });
-                      _salvarDados();
+                      _salvarDados(); // ✅ Já chama a sincronização internamente
                       Navigator.pop(context);
                     }
                   },
@@ -301,7 +248,6 @@ class _AgendaScreenState extends State<AgendaScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Aqui o _filtroAtivo é usado corretamente:
     final filtrados = _agenda.where((e) => 
       _deveExibirNoDia(e, _diaSelecionado) && 
       (_filtroAtivo == 'Todos' || e.categoria.nome == _filtroAtivo)
@@ -410,7 +356,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
           key: Key(item.id),
           onDismissed: (d) {
             setState(() => _agenda.remove(item));
-            _salvarDados();
+            _salvarDados(); // ✅ Sincroniza ao deletar
           },
           background: Container(color: Colors.red, alignment: Alignment.centerRight, child: const Icon(Icons.delete, color: Colors.white)),
           child: Container(
@@ -423,7 +369,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
                 activeColor: const Color(0xFF03DAC6),
                 onChanged: (v) {
                   setState(() => item.concluido = v!);
-                  _salvarDados();
+                  _salvarDados(); // ✅ Sincroniza ao marcar como concluído
                 }
               ),
               title: Text(item.titulo, style: TextStyle(color: Colors.white, decoration: item.concluido ? TextDecoration.lineThrough : null)),

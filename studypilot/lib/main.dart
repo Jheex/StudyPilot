@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'app_data.dart'; // Importe do seu arquivo de dados
+import 'app_data.dart'; 
 import 'study_screen.dart';
 import 'agenda_screen.dart';
 import 'financas_screen.dart';
@@ -51,12 +51,12 @@ class MainLayout extends StatefulWidget {
 
 class _MainLayoutState extends State<MainLayout> {
   int indiceAtual = 0;
-  final AppData appData = AppData(); // Instância do Singleton de dados
+  final AppData appData = AppData(); 
 
   @override
   void initState() {
     super.initState();
-    // Faz com que a tela principal "escute" as mudanças no AppData
+    // Escuta as mudanças no AppData para atualizar o Dashboard em tempo real
     appData.addListener(_atualizarInterface);
   }
 
@@ -130,7 +130,7 @@ class _MainLayoutState extends State<MainLayout> {
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ConfigScreen())),
               child: Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: Colors.white.withAlpha(13), shape: BoxShape.circle),
+                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), shape: BoxShape.circle),
                 child: const Icon(Icons.settings_outlined, size: 22, color: kAccentColor),
               ),
             ),
@@ -138,18 +138,18 @@ class _MainLayoutState extends State<MainLayout> {
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(color: Colors.white.withAlpha(13), height: 1),
+          child: Container(color: Colors.white.withValues(alpha: 0.05), height: 1),
         ),
       ),
       body: IndexedStack(index: indiceAtual, children: telas),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: kBackgroundColor,
-          border: Border(top: BorderSide(color: Colors.white.withAlpha(13))),
+          border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.05))),
         ),
         child: NavigationBar(
           backgroundColor: kBackgroundColor,
-          indicatorColor: kAccentColor.withAlpha(26),
+          indicatorColor: kAccentColor.withValues(alpha: 0.1),
           selectedIndex: indiceAtual,
           onDestinationSelected: mudarAba,
           height: 75,
@@ -164,7 +164,7 @@ class _MainLayoutState extends State<MainLayout> {
     );
   }
 
-  // --- DASHBOARD COM VÍNCULO AO APPDATA ---
+  // --- DASHBOARD ---
 
   Widget buildDashboard() {
     return SingleChildScrollView(
@@ -240,7 +240,7 @@ class _MainLayoutState extends State<MainLayout> {
         decoration: BoxDecoration(
           color: kCardColor,
           borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: Colors.white.withOpacity(0.05)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -255,23 +255,26 @@ class _MainLayoutState extends State<MainLayout> {
   }
 
   Widget _buildAgendaPreview() {
-    // Filtra apenas tarefas não concluídas e pega as 2 mais próximas
     final proximasTarefas = appData.tarefas
-        .where((t) => !t.concluida)
-        .take(2)
+        .where((t) => !t.concluido)
+        .take(3) 
         .toList();
 
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(color: kCardColor, borderRadius: BorderRadius.circular(22)),
       child: proximasTarefas.isEmpty
-          ? const Center(child: Text("Nenhuma tarefa pendente! 🎉", style: TextStyle(color: Colors.white30, fontSize: 12)))
+          ? const Center(child: Text("Nenhuma missão pendente! 🚀", style: TextStyle(color: Colors.white38, fontSize: 12)))
           : Column(
               children: proximasTarefas.map((t) {
                 bool isLast = proximasTarefas.last == t;
                 return Column(
                   children: [
-                    _buildAgendaItem(t.titulo, "${t.prazo.day}/${t.prazo.month}", t.cor),
+                    _buildAgendaItem(
+                      t.titulo, 
+                      "${t.dataHora.day}/${t.dataHora.month}", 
+                      t.categoria.cor 
+                    ),
                     if (!isLast) const Padding(
                       padding: EdgeInsets.symmetric(vertical: 12),
                       child: Divider(color: Colors.white10, height: 1),
@@ -327,7 +330,7 @@ class _MainLayoutState extends State<MainLayout> {
           borderRadius: BorderRadius.circular(10),
           child: LinearProgressIndicator(
             value: progresso, 
-            backgroundColor: Colors.white.withOpacity(0.05), 
+            backgroundColor: Colors.white.withValues(alpha: 0.05), 
             color: color, 
             minHeight: 6
           ),
@@ -337,12 +340,15 @@ class _MainLayoutState extends State<MainLayout> {
   }
 
   Widget _buildFinancasSummary() {
+    // Calcula o total de gastos somando os valores do mapa categoriasGastos no AppData
+    double totalGastos = appData.categoriasGastos.values.fold(0, (sum, item) => sum + item);
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: kCardColor,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: kSecondaryColor.withOpacity(0.1)),
+        border: Border.all(color: kSecondaryColor.withValues(alpha: 0.1)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -353,14 +359,14 @@ class _MainLayoutState extends State<MainLayout> {
               const Text("GASTOS TOTAIS NO MÊS", style: TextStyle(color: Colors.white38, fontSize: 9, fontWeight: FontWeight.bold)),
               const SizedBox(height: 4),
               Text(
-                "R\$ ${appData.saldoMensal.toStringAsFixed(2)}", 
+                "R\$ ${totalGastos.toStringAsFixed(2)}", 
                 style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: -0.5)
               ),
             ],
           ),
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: kSecondaryColor.withOpacity(0.1), shape: BoxShape.circle),
+            decoration: BoxDecoration(color: kSecondaryColor.withValues(alpha: 0.1), shape: BoxShape.circle),
             child: const Icon(Icons.trending_down, color: kSecondaryColor, size: 20),
           ),
         ],
