@@ -80,16 +80,16 @@ class _MainLayoutState extends State<MainLayout> {
 
   @override
   Widget build(BuildContext context) {
-    // Adicionamos as novas telas à lista para que o IndexedStack as gerencie sob o footer
+    // Lista de telas para o IndexedStack
     final List<Widget> telas = [
-      buildDashboard(),       // Índice 0
-      const AgendaScreen(),   // Índice 1
-      const FinancasScreen(), // Índice 2
-      const StudyScreen(),    // Índice 3
-      const AcademiaScreen(), // Índice 4 (Acessada via card)
-      const ComprasScreen(),  // Índice 5 (Acessada via card)
-      const CofreScreen(),        // 6 (Novo)
-      const GerenciamentoScreen(),// 7 (Novo)
+      buildDashboard(),            // Índice 0
+      const AgendaScreen(),        // Índice 1
+      const FinancasScreen(),      // Índice 2
+      const StudyScreen(),         // Índice 3
+      const AcademiaScreen(),      // Índice 4
+      const ComprasScreen(),       // Índice 5
+      const CofreScreen(),         // Índice 6
+      const GerenciamentoScreen(), // Índice 7
     ];
 
     return Scaffold(
@@ -100,6 +100,7 @@ class _MainLayoutState extends State<MainLayout> {
         centerTitle: false,
         title: Row(
           children: [
+            // Container do Logo/Imagem
             Container(
               width: 42,
               height: 42,
@@ -111,18 +112,42 @@ class _MainLayoutState extends State<MainLayout> {
                 ),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Center(child: Text("🚀", style: TextStyle(fontSize: 20))),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.asset(
+                  'assets/images/logo.png', // <-- Caminho do seu asset
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    // Fallback: Se a imagem falhar, mostra o foguete
+                    return const Center(
+                      child: Text("🚀", style: TextStyle(fontSize: 20)),
+                    );
+                  },
+                ),
+              ),
             ),
             const SizedBox(width: 12),
             const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text("StudyPilot",
-                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: Colors.white, letterSpacing: -0.5),
+                Text(
+                  "StudyPilot",
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 20,
+                    color: Colors.white,
+                    letterSpacing: -0.5,
+                  ),
                 ),
-                Text("OPERATIONAL UNIT",
-                  style: TextStyle(fontSize: 8, color: Colors.white24, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+                Text(
+                  "OPERATIONAL UNIT",
+                  style: TextStyle(
+                    fontSize: 8,
+                    color: Colors.white24,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.2,
+                  ),
                 ),
               ],
             ),
@@ -136,12 +161,15 @@ class _MainLayoutState extends State<MainLayout> {
           Padding(
             padding: const EdgeInsets.only(right: 15, left: 5),
             child: GestureDetector(
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ConfigScreen())),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ConfigScreen()),
+              ),
               child: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.05),
-                  shape: BoxShape.circle
+                  color: Colors.white.withOpacity(0.05),
+                  shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.settings_outlined, size: 22, color: kAccentColor),
               ),
@@ -151,29 +179,46 @@ class _MainLayoutState extends State<MainLayout> {
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
           child: Container(
-            color: Colors.white.withValues(alpha: 0.05),
-            height: 1
+            color: Colors.white.withOpacity(0.05),
+            height: 1,
           ),
         ),
       ),
-      body: IndexedStack(index: indiceAtual, children: telas),
+      body: IndexedStack(
+        index: indiceAtual,
+        children: telas,
+      ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: kBackgroundColor,
-          border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.05))),
+          border: Border(
+            top: BorderSide(color: Colors.white.withOpacity(0.05)),
+          ),
         ),
         child: NavigationBar(
           backgroundColor: kBackgroundColor,
-          indicatorColor: kAccentColor.withValues(alpha: 0.1),
-          // Se o índice for 4 ou 5 (Academia/Compras), mantemos o foco visual no ícone da Home (0)
-          selectedIndex: indiceAtual > 3 ? 0 : indiceAtual, 
+          indicatorColor: kAccentColor.withOpacity(0.1),
+          // Se estiver em telas "extras" (Cofre, Academia, etc), volta o foco para a Home
+          selectedIndex: indiceAtual > 3 ? 0 : indiceAtual,
           onDestinationSelected: mudarAba,
           height: 75,
           destinations: const [
-            NavigationDestination(icon: Icon(Icons.grid_view_rounded), label: 'Home'),
-            NavigationDestination(icon: Icon(Icons.calendar_today_rounded), label: 'Agenda'),
-            NavigationDestination(icon: Icon(Icons.payments_outlined), label: 'Finanças'),
-            NavigationDestination(icon: Icon(Icons.school_rounded), label: 'Estudos'),
+            NavigationDestination(
+              icon: Icon(Icons.grid_view_rounded),
+              label: 'Home',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.calendar_today_rounded),
+              label: 'Agenda',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.payments_outlined),
+              label: 'Finanças',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.school_rounded),
+              label: 'Estudos',
+            ),
           ],
         ),
       ),
