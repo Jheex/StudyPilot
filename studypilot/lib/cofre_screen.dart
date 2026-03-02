@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 // --- MODELOS DE DADOS ---
 abstract class RegistroCofre {
@@ -13,8 +15,9 @@ class Credencial extends RegistroCofre {
 }
 
 class Documento extends RegistroCofre {
+  final List<String> fotosPaths;
   final String obs;
-  Documento({required super.id, required super.titulo, required super.categoria, required this.obs});
+  Documento({required super.id, required super.titulo, required super.categoria, required this.obs, required this.fotosPaths});
 }
 
 class Nota extends RegistroCofre {
@@ -32,7 +35,6 @@ class CofreScreen extends StatefulWidget {
 
 class _CofreScreenState extends State<CofreScreen> {
   final TextEditingController _senhaController = TextEditingController();
-  
   static String? _chaveMestra; 
   bool _autenticado = false;
   static final List<RegistroCofre> _storage = [];
@@ -41,10 +43,7 @@ class _CofreScreenState extends State<CofreScreen> {
     final input = _senhaController.text;
     if (_chaveMestra == null) {
       if (input.length < 4) return;
-      setState(() {
-        _chaveMestra = input;
-        _autenticado = true;
-      });
+      setState(() { _chaveMestra = input; _autenticado = true; });
     } else {
       if (input == _chaveMestra) {
         setState(() => _autenticado = true);
@@ -60,7 +59,6 @@ class _CofreScreenState extends State<CofreScreen> {
   void _dialogAlterarSenha() {
     final atualCont = TextEditingController();
     final novaCont = TextEditingController();
-
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -69,18 +67,10 @@ class _CofreScreenState extends State<CofreScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(
-              controller: atualCont, 
-              obscureText: true, 
-              style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(labelText: "Senha Atual", labelStyle: TextStyle(color: Colors.white24)),
-            ),
-            TextField(
-              controller: novaCont, 
-              obscureText: true, 
-              style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(labelText: "Nova Senha", labelStyle: TextStyle(color: Colors.white24)),
-            ),
+            TextField(controller: atualCont, obscureText: true, style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(labelText: "Senha Atual", labelStyle: TextStyle(color: Colors.white24))),
+            TextField(controller: novaCont, obscureText: true, style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(labelText: "Nova Senha", labelStyle: TextStyle(color: Colors.white24))),
           ],
         ),
         actions: [
@@ -120,20 +110,15 @@ class _CofreScreenState extends State<CofreScreen> {
         children: [
           Icon(novo ? Icons.shield_outlined : Icons.lock_person_rounded, size: 80, color: Colors.amber),
           const SizedBox(height: 20),
-          Text(novo ? "CRIAR ACESSO" : "DIGITE A CHAVE", style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 2)),
+          Text(novo ? "CRIAR ACESSO" : "DIGITE A CHAVE", style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 2, color: Colors.white)),
           const SizedBox(height: 30),
           TextField(
-            controller: _senhaController,
-            obscureText: true,
-            keyboardType: TextInputType.number,
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 24, color: Colors.amber, letterSpacing: 10),
+            controller: _senhaController, obscureText: true, keyboardType: TextInputType.number,
+            textAlign: TextAlign.center, style: const TextStyle(fontSize: 24, color: Colors.amber, letterSpacing: 10),
             decoration: InputDecoration(
-              filled: true, 
-              fillColor: Colors.white.withValues(alpha: 0.05), 
+              filled: true, fillColor: Colors.white.withValues(alpha: 0.05), 
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
-              hintText: "••••",
-              hintStyle: const TextStyle(color: Colors.white10)
+              hintText: "••••", hintStyle: const TextStyle(color: Colors.white10)
             ),
             onSubmitted: (_) => _validarAcesso(),
           ),
@@ -157,13 +142,10 @@ class _CofreScreenState extends State<CofreScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("SAFE BOX", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
+              const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text("SAFE BOX", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white)),
                   Text("MODO RESTRITO", style: TextStyle(color: Colors.amber, fontSize: 10, fontWeight: FontWeight.bold)),
-                ],
-              ),
+              ]),
               PopupMenuButton<int>(
                 icon: const Icon(Icons.more_vert, color: Colors.white24),
                 color: const Color(0xFF1C1F33),
@@ -200,22 +182,15 @@ class _CofreScreenState extends State<CofreScreen> {
       child: Container(
         margin: const EdgeInsets.only(bottom: 15),
         padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1C1F33), 
-          borderRadius: BorderRadius.circular(20), 
-          border: Border.all(color: Colors.white.withValues(alpha: 0.03))
-        ),
+        decoration: BoxDecoration(color: const Color(0xFF1C1F33), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white.withValues(alpha: 0.03))),
         child: Row(
           children: [
             Icon(i, color: Colors.amber, size: 28),
             const SizedBox(width: 20),
-            Expanded(child: Text(t, style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1))),
+            Expanded(child: Text(t, style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1, color: Colors.white))),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.05), 
-                borderRadius: BorderRadius.circular(8)
-              ),
+              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(8)),
               child: Text("$q", style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 12)),
             ),
           ],
@@ -225,7 +200,7 @@ class _CofreScreenState extends State<CofreScreen> {
   }
 }
 
-// --- TELA DE DETALHES COM EDIÇÃO E EXCLUSÃO ---
+// --- TELA DE DETALHES ---
 class DetalheCofre extends StatefulWidget {
   final String titulo;
   final List<RegistroCofre> storage;
@@ -239,8 +214,18 @@ class DetalheCofre extends StatefulWidget {
 class _DetalheCofreState extends State<DetalheCofre> {
   final _t1 = TextEditingController(), _t2 = TextEditingController(), 
         _t3 = TextEditingController(), _t4 = TextEditingController(), _t5 = TextEditingController();
+  
+  List<String> _fotosTemporarias = [];
+  final ImagePicker _picker = ImagePicker();
 
-  void _limpar() { _t1.clear(); _t2.clear(); _t3.clear(); _t4.clear(); _t5.clear(); }
+  void _limpar() { _t1.clear(); _t2.clear(); _t3.clear(); _t4.clear(); _t5.clear(); _fotosTemporarias = []; }
+
+  Future<void> _pegarImagem(ImageSource source, StateSetter setModalState) async {
+    final XFile? image = await _picker.pickImage(source: source, imageQuality: 80);
+    if (image != null) {
+      setModalState(() { _fotosTemporarias.add(image.path); });
+    }
+  }
 
   void _salvar({String? editId}) {
     if(_t1.text.isEmpty) return;
@@ -251,7 +236,7 @@ class _DetalheCofreState extends State<DetalheCofre> {
       if (widget.titulo == "SENHAS") {
         widget.storage.add(Credencial(id: id, titulo: _t1.text, categoria: widget.titulo, email: _t2.text, senha: _t3.text, telefone: _t4.text, recuperacao: _t5.text));
       } else if (widget.titulo == "DOCUMENTOS") {
-        widget.storage.add(Documento(id: id, titulo: _t1.text, categoria: widget.titulo, obs: _t2.text));
+        widget.storage.add(Documento(id: id, titulo: _t1.text, categoria: widget.titulo, obs: _t2.text, fotosPaths: List.from(_fotosTemporarias)));
       } else {
         widget.storage.add(Nota(id: id, titulo: _t1.text, categoria: widget.titulo, conteudo: _t2.text));
       }
@@ -261,31 +246,12 @@ class _DetalheCofreState extends State<DetalheCofre> {
     _limpar();
   }
 
-  void _confirmarExcluir(RegistroCofre r) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1C1F33),
-        title: const Text("Excluir?", style: TextStyle(color: Colors.redAccent)),
-        content: Text("Apagar '${r.titulo}'?"),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("NÃO")),
-          TextButton(onPressed: () {
-            setState(() => widget.storage.remove(r));
-            widget.onRefresh();
-            Navigator.pop(ctx);
-          }, child: const Text("SIM", style: TextStyle(color: Colors.redAccent))),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final list = widget.storage.where((i) => i.categoria == widget.titulo).toList();
     return Scaffold(
       backgroundColor: const Color(0xFF121421),
-      appBar: AppBar(title: Text(widget.titulo), backgroundColor: Colors.transparent, foregroundColor: Colors.amber),
+      appBar: AppBar(title: Text(widget.titulo), backgroundColor: Colors.transparent, foregroundColor: Colors.amber, elevation: 0),
       body: list.isEmpty ? const Center(child: Text("Nenhum registro", style: TextStyle(color: Colors.white10))) : 
       ListView.builder(
         padding: const EdgeInsets.all(20),
@@ -294,8 +260,8 @@ class _DetalheCofreState extends State<DetalheCofre> {
           margin: const EdgeInsets.only(bottom: 12),
           decoration: BoxDecoration(color: const Color(0xFF1C1F33), borderRadius: BorderRadius.circular(15)),
           child: ListTile(
-            title: Text(list[i].titulo, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-            subtitle: const Text("••••••••", style: TextStyle(color: Colors.amber, fontSize: 10)),
+            title: Text(list[i].titulo, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white)),
+            subtitle: Text(list[i] is Documento ? "${(list[i] as Documento).fotosPaths.length} anexos" : "Toque para ver", style: const TextStyle(color: Colors.amber, fontSize: 10)),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -315,23 +281,38 @@ class _DetalheCofreState extends State<DetalheCofre> {
     showDialog(context: context, builder: (ctx) => AlertDialog(
       backgroundColor: const Color(0xFF1C1F33),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: Text(r.titulo, style: const TextStyle(color: Colors.amber, fontSize: 16)),
+      title: Text(r.titulo, style: const TextStyle(color: Colors.amber, fontSize: 18, fontWeight: FontWeight.bold)),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (r is Documento && r.fotosPaths.isNotEmpty) ...[
+              SizedBox(
+                height: 250, width: double.maxFinite,
+                child: PageView.builder(
+                  itemCount: r.fotosPaths.length,
+                  itemBuilder: (context, index) => Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: ClipRRect(borderRadius: BorderRadius.circular(10), child: Image.file(File(r.fotosPaths[index]), fit: BoxFit.contain)),
+                  ),
+                ),
+              ),
+              const Center(child: Text("Arraste para o lado", style: TextStyle(fontSize: 10, color: Colors.white24))),
+              const SizedBox(height: 15),
+            ],
             if (r is Credencial) ...[ _row("Usuário", r.email), _row("Senha", r.senha), _row("Telefone", r.telefone), _row("Recuperação", r.recuperacao) ]
-            else if (r is Documento) ...[ _row("Obs", r.obs) ]
+            else if (r is Documento) ...[ _row("Observações", r.obs) ]
             else if (r is Nota) ...[ _row("Conteúdo", r.conteudo) ]
           ],
         ),
       ),
+      actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("FECHAR", style: TextStyle(color: Colors.amber)))],
     ));
   }
 
   Widget _row(String l, String v) => Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Text(l.toUpperCase(), style: const TextStyle(color: Colors.white24, fontSize: 9)),
+    Text(l.toUpperCase(), style: const TextStyle(color: Colors.white24, fontSize: 9, fontWeight: FontWeight.bold)),
     const SizedBox(height: 4),
     SelectableText(v, style: const TextStyle(color: Colors.white, fontSize: 15)),
   ]));
@@ -340,37 +321,64 @@ class _DetalheCofreState extends State<DetalheCofre> {
     if (r != null) {
       _t1.text = r.titulo;
       if (r is Credencial) { _t2.text = r.email; _t3.text = r.senha; _t4.text = r.telefone; _t5.text = r.recuperacao; }
-      else if (r is Documento) { _t2.text = r.obs; }
+      else if (r is Documento) { _t2.text = r.obs; _fotosTemporarias = List.from(r.fotosPaths); }
       else if (r is Nota) { _t2.text = r.conteudo; }
     } else { _limpar(); }
 
     showModalBottomSheet(
-      context: context, 
-      isScrollControlled: true, 
-      backgroundColor: const Color(0xFF121421), 
+      context: context, isScrollControlled: true, backgroundColor: const Color(0xFF121421), 
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(30))), 
-      builder: (ctx) => Padding(
+      builder: (ctx) => StatefulBuilder(builder: (ctx, setModalState) => Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom, left: 30, right: 30, top: 30),
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Text(r == null ? "NOVO ITEM" : "EDITAR ITEM", style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 20),
-        TextField(controller: _t1, decoration: const InputDecoration(labelText: "Título")),
-        if(widget.titulo == "SENHAS") ...[
-          TextField(controller: _t2, decoration: const InputDecoration(labelText: "E-mail / Usuário")),
-          TextField(controller: _t3, decoration: const InputDecoration(labelText: "Senha"), obscureText: true),
-          TextField(controller: _t4, decoration: const InputDecoration(labelText: "Telefone")),
-          TextField(controller: _t5, decoration: const InputDecoration(labelText: "Recuperação")),
-        ] else ...[
-          TextField(controller: _t2, decoration: const InputDecoration(labelText: "Conteúdo / Obs"), maxLines: 4),
-        ],
-        const SizedBox(height: 30),
-        ElevatedButton(
-          onPressed: () => _salvar(editId: r?.id), 
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.amber, minimumSize: const Size(double.infinity, 55), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))), 
-          child: Text(r == null ? "SALVAR NO COFRE" : "ATUALIZAR DADOS", style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold))
-        ),
-        const SizedBox(height: 30),
-      ]),
+      child: SingleChildScrollView(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text(r == null ? "ADICIONAR NOVO" : "EDITAR REGISTRO", style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 20),
+          TextField(controller: _t1, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: "Título", labelStyle: TextStyle(color: Colors.white24))),
+          if(widget.titulo == "SENHAS") ...[
+            TextField(controller: _t2, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: "Usuário/E-mail", labelStyle: TextStyle(color: Colors.white24))),
+            TextField(controller: _t3, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: "Senha", labelStyle: TextStyle(color: Colors.white24))),
+            TextField(controller: _t4, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: "Telefone", labelStyle: TextStyle(color: Colors.white24))),
+            TextField(controller: _t5, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: "Cód. Recuperação", labelStyle: TextStyle(color: Colors.white24))),
+          ] else if (widget.titulo == "DOCUMENTOS") ...[
+            const SizedBox(height: 15),
+            Row(children: [
+              Expanded(child: ElevatedButton.icon(onPressed: () => _pegarImagem(ImageSource.camera, setModalState), icon: const Icon(Icons.camera_alt, color: Colors.black), label: const Text("CÂMERA", style: TextStyle(color: Colors.black)), style: ElevatedButton.styleFrom(backgroundColor: Colors.white))),
+              const SizedBox(width: 10),
+              Expanded(child: ElevatedButton.icon(onPressed: () => _pegarImagem(ImageSource.gallery, setModalState), icon: const Icon(Icons.image, color: Colors.black), label: const Text("GALERIA", style: TextStyle(color: Colors.black)), style: ElevatedButton.styleFrom(backgroundColor: Colors.white))),
+            ]),
+            if (_fotosTemporarias.isNotEmpty) Container(
+              height: 100, margin: const EdgeInsets.symmetric(vertical: 15),
+              child: ListView.builder(scrollDirection: Axis.horizontal, itemCount: _fotosTemporarias.length, itemBuilder: (context, idx) => Stack(children: [
+                Container(width: 90, margin: const EdgeInsets.only(right: 10), decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.white10), image: DecorationImage(image: FileImage(File(_fotosTemporarias[idx])), fit: BoxFit.cover))),
+                Positioned(right: 0, top: 0, child: GestureDetector(onTap: () => setModalState(() => _fotosTemporarias.removeAt(idx)), child: Container(decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle), child: const Icon(Icons.close, color: Colors.red, size: 20)))),
+              ])),
+            ),
+            TextField(controller: _t2, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: "Observações", labelStyle: TextStyle(color: Colors.white24)), maxLines: 2),
+          ] else ...[
+            TextField(controller: _t2, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: "Anotação", labelStyle: TextStyle(color: Colors.white24)), maxLines: 5),
+          ],
+          const SizedBox(height: 30),
+          ElevatedButton(
+            onPressed: () => _salvar(editId: r?.id), 
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.amber, minimumSize: const Size(double.infinity, 55), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))), 
+            child: Text(r == null ? "SALVAR" : "ATUALIZAR", style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold))
+          ),
+          const SizedBox(height: 30),
+        ]),
+      ),
+    )));
+  }
+
+  void _confirmarExcluir(RegistroCofre r) {
+    showDialog(context: context, builder: (ctx) => AlertDialog(
+      backgroundColor: const Color(0xFF1C1F33),
+      title: const Text("Excluir item?", style: TextStyle(color: Colors.white)),
+      content: Text("Tem certeza que deseja apagar '${r.titulo}'?", style: const TextStyle(color: Colors.white70)),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("NÃO", style: TextStyle(color: Colors.white24))),
+        TextButton(onPressed: () { setState(() => widget.storage.remove(r)); widget.onRefresh(); Navigator.pop(ctx); }, child: const Text("SIM", style: TextStyle(color: Colors.redAccent))),
+      ],
     ));
   }
 }
