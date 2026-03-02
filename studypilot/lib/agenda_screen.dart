@@ -49,10 +49,6 @@ class _AgendaScreenState extends State<AgendaScreen> {
       // Categorias Iniciais se estiver vazio
       _categorias = [
         Categoria(nome: 'Todos', cor: Colors.grey),
-        Categoria(nome: 'Lembrete', cor: const Color(0xFF03DAC6)),
-        Categoria(nome: 'Estudo', cor: const Color(0xFFBB86FC)),
-        Categoria(nome: 'Aniversário', cor: Colors.pinkAccent),
-        Categoria(nome: 'Feriado', cor: Colors.orange),
       ];
     }
 
@@ -240,13 +236,8 @@ class _AgendaScreenState extends State<AgendaScreen> {
     final oController = TextEditingController();
     final intervalController = TextEditingController(text: '1');
     
-    // ✅ MELHORIA: Busca a referência exata da lista para evitar bugs de cor
-    Categoria? catSel;
-    try {
-      catSel = _categorias.firstWhere((c) => c.nome.toLowerCase() == 'todos');
-    } catch (_) {
-      catSel = _categorias.isNotEmpty ? _categorias.first : null;
-    }
+    // ✅ Começa nulo para forçar a escolha da categoria
+    Categoria? catSel; 
 
     String repSel = 'Nenhuma';
     bool mostrarCampoIntervalo = false;
@@ -255,23 +246,42 @@ class _AgendaScreenState extends State<AgendaScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: const Color(0xFF1C1F33),
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20))
+      ),
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) => Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom + 20, left: 20, right: 20, top: 20),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom + 20, 
+            left: 20, 
+            right: 20, 
+            top: 20
+          ),
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text("NOVA MISSÃO", style: TextStyle(color: Color(0xFFBB86FC), fontWeight: FontWeight.bold)),
-                const SizedBox(height: 15),
-                TextField(controller: tController, style: const TextStyle(color: Colors.white), decoration: _inputStyle("Título")),
-                const SizedBox(height: 10),
-                TextField(controller: mController, style: const TextStyle(color: Colors.white), decoration: _inputStyle("Local / Descrição")),
+                const Text(
+                  "NOVA MISSÃO", 
+                  style: TextStyle(color: Color(0xFFBB86FC), fontWeight: FontWeight.bold)
+                ),
                 const SizedBox(height: 15),
                 
-                // Seletor de Data e Repetição
+                TextField(
+                  controller: tController, 
+                  style: const TextStyle(color: Colors.white), 
+                  decoration: _inputStyle("Título")
+                ),
+                const SizedBox(height: 10),
+                
+                TextField(
+                  controller: mController, 
+                  style: const TextStyle(color: Colors.white), 
+                  decoration: _inputStyle("Local / Descrição")
+                ),
+                const SizedBox(height: 15),
+                
                 Row(
                   children: [
                     Expanded(
@@ -279,17 +289,27 @@ class _AgendaScreenState extends State<AgendaScreen> {
                         onTap: () => _selecionarDataHora(context, setModalState),
                         child: Container(
                           padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(12)),
-                          child: Text(DateFormat('dd/MM/yyyy - HH:mm').format(_diaSelecionado), style: const TextStyle(color: Colors.white)),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.05), 
+                            borderRadius: BorderRadius.circular(12)
+                          ),
+                          child: Text(
+                            DateFormat('dd/MM/yyyy - HH:mm').format(_diaSelecionado), 
+                            style: const TextStyle(color: Colors.white)
+                          ),
                         ),
                       ),
                     ),
                     const SizedBox(width: 10),
                     DropdownButton<String>(
                       value: repSel,
+                      borderRadius: BorderRadius.circular(12),
                       dropdownColor: const Color(0xFF1C1F33),
                       items: ['Nenhuma', 'Diária', 'Semanal', 'Mensal', 'Anual', 'Personalizado']
-                          .map((s) => DropdownMenuItem(value: s, child: Text(s, style: const TextStyle(color: Colors.white)))).toList(),
+                          .map((s) => DropdownMenuItem(
+                            value: s, 
+                            child: Text(s, style: const TextStyle(color: Colors.white))
+                          )).toList(),
                       onChanged: (v) {
                         setModalState(() {
                           repSel = v!;
@@ -320,52 +340,122 @@ class _AgendaScreenState extends State<AgendaScreen> {
                 ],
                 
                 const SizedBox(height: 15),
-                const Text("CATEGORIA", style: TextStyle(color: Colors.white54, fontSize: 12)),
+                const Text(
+                  "CATEGORIA", 
+                  style: TextStyle(color: Colors.white54, fontSize: 12)
+                ),
                 const SizedBox(height: 8),
-                
-                // ✅ SELETOR DE CATEGORIAS (Chips Coloridos)
-                Wrap(
-                  spacing: 8,
-                  children: _categorias.map((cat) => ChoiceChip(
-                    label: Text(cat.nome),
-                    selected: catSel == cat,
-                    onSelected: (s) => setModalState(() => catSel = cat),
-                    selectedColor: cat.cor, // ✅ A cor que você escolheu na bolinha!
-                    checkmarkColor: Colors.black,
-                    labelStyle: TextStyle(
-                      color: catSel == cat ? Colors.black : Colors.white,
-                      fontWeight: FontWeight.bold
+
+                // ✅ DROPDOWN DE CATEGORIAS
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<Categoria>(
+                      value: catSel,
+                      borderRadius: BorderRadius.circular(15),
+                      hint: const Text(
+                        "Selecione uma categoria", 
+                        style: TextStyle(color: Colors.white38, fontSize: 14)
+                      ),
+                      isExpanded: true,
+                      dropdownColor: const Color(0xFF1C1F33),
+                      icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFFBB86FC)),
+                      items: [
+                        // Opção para adicionar nova
+                        DropdownMenuItem<Categoria>(
+                          value: null,
+                          child: Row(
+                            children: const [
+                              Icon(Icons.add_circle_outline, color: Color(0xFF03DAC6), size: 20),
+                              SizedBox(width: 10),
+                              Text(
+                                "Adicionar Nova...", 
+                                style: TextStyle(color: Color(0xFF03DAC6), fontWeight: FontWeight.bold)
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Listagem das categorias existentes
+                        ..._categorias.where((c) => c.nome != 'Todos').map((cat) => DropdownMenuItem<Categoria>(
+                          value: cat,
+                          child: Row(
+                            children: [
+                              CircleAvatar(backgroundColor: cat.cor, radius: 6),
+                              const SizedBox(width: 12),
+                              Text(cat.nome, style: const TextStyle(color: Colors.white)),
+                            ],
+                          ),
+                        )),
+                      ],
+                      onChanged: (Categoria? selecionada) {
+                        if (selecionada == null) {
+                          // Abre o gerenciador sem fechar o form principal se possível, 
+                          // ou fecha e abre o gerenciador. Aqui mantemos sua lógica de fechar.
+                          Navigator.pop(context); 
+                          _abrirGerenciadorCategorias(); 
+                        } else {
+                          setModalState(() => catSel = selecionada);
+                        }
+                      },
                     ),
-                  )).toList(),
+                  ),
                 ),
                 
                 const SizedBox(height: 15),
-                TextField(controller: oController, maxLines: 2, style: const TextStyle(color: Colors.white), decoration: _inputStyle("Observações")),
+                TextField(
+                  controller: oController, 
+                  maxLines: 2, 
+                  style: const TextStyle(color: Colors.white), 
+                  decoration: _inputStyle("Observações")
+                ),
                 const SizedBox(height: 20),
                 
                 ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF03DAC6), minimumSize: const Size(double.infinity, 50)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF03DAC6), 
+                    minimumSize: const Size(double.infinity, 50),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
+                  ),
                   onPressed: () {
-                    if (tController.text.isNotEmpty && catSel != null) {
-                      String repeticaoFinal = repSel;
-                      if (repSel == 'Personalizado') repeticaoFinal = "${intervalController.text} Dias";
-
-                      setState(() {
-                        _agenda.add(Compromisso(
-                          id: DateTime.now().millisecondsSinceEpoch.toString(),
-                          titulo: tController.text,
-                          materia: mController.text, // Local/Descrição
-                          dataHora: _diaSelecionado,
-                          categoria: catSel!, // ✅ Salva a categoria com a cor certa
-                          observacoes: oController.text,
-                          repeticao: repeticaoFinal,
-                        ));
-                      });
-                      _salvarDados();
-                      Navigator.pop(context);
+                    // Validação: Título e Categoria são obrigatórios
+                    if (tController.text.isEmpty || catSel == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Preencha o título e escolha uma categoria!"),
+                          backgroundColor: Colors.redAccent,
+                        ),
+                      );
+                      return;
                     }
+
+                    String repeticaoFinal = repSel;
+                    if (repSel == 'Personalizado') {
+                      repeticaoFinal = "${intervalController.text} Dias";
+                    }
+
+                    setState(() {
+                      _agenda.add(Compromisso(
+                        id: DateTime.now().millisecondsSinceEpoch.toString(),
+                        titulo: tController.text,
+                        materia: mController.text,
+                        dataHora: _diaSelecionado,
+                        categoria: catSel!, 
+                        observacoes: oController.text,
+                        repeticao: repeticaoFinal,
+                      ));
+                    });
+                    
+                    _salvarDados();
+                    Navigator.pop(context);
                   },
-                  child: const Text("SALVAR MISSÃO", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                  child: const Text(
+                    "SALVAR MISSÃO", 
+                    style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)
+                  ),
                 )
               ],
             ),

@@ -4,6 +4,8 @@ import 'app_data.dart';
 import 'study_screen.dart';
 import 'agenda_screen.dart';
 import 'financas_screen.dart';
+import 'academia_screen.dart';
+import 'compras_screen.dart';
 import 'config_screen.dart';
 
 // Constantes Globais de Estilo
@@ -78,9 +80,9 @@ class _MainLayoutState extends State<MainLayout> {
   Widget build(BuildContext context) {
     final List<Widget> telas = [
       buildDashboard(),
-      const StudyScreen(),
       const AgendaScreen(),
       const FinancasScreen(),
+      const StudyScreen(),
     ];
 
     return Scaffold(
@@ -151,19 +153,19 @@ class _MainLayoutState extends State<MainLayout> {
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: kBackgroundColor,
-          border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.05))), // CORRIGIDO
+          border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.05))),
         ),
         child: NavigationBar(
           backgroundColor: kBackgroundColor,
-          indicatorColor: kAccentColor.withValues(alpha: 0.1), // CORRIGIDO
+          indicatorColor: kAccentColor.withValues(alpha: 0.1),
           selectedIndex: indiceAtual,
           onDestinationSelected: mudarAba,
           height: 75,
           destinations: const [
             NavigationDestination(icon: Icon(Icons.grid_view_rounded), label: 'Home'),
-            NavigationDestination(icon: Icon(Icons.bolt_rounded), label: 'Estudos'),
             NavigationDestination(icon: Icon(Icons.calendar_today_rounded), label: 'Agenda'),
             NavigationDestination(icon: Icon(Icons.payments_outlined), label: 'Finanças'),
+            NavigationDestination(icon: Icon(Icons.bolt_rounded), label: 'Estudos'),
           ],
         ),
       ),
@@ -173,38 +175,41 @@ class _MainLayoutState extends State<MainLayout> {
   // --- DASHBOARD ---
 
   Widget buildDashboard() {
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text("CENTRAL DE OPERAÇÕES",
-              style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: kSecondaryColor, letterSpacing: 2)),
-          const SizedBox(height: 15),
+  return SingleChildScrollView(
+    physics: const BouncingScrollPhysics(),
+    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text("CENTRAL DE OPERAÇÕES",
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: kSecondaryColor, letterSpacing: 2)),
+        const SizedBox(height: 15),
 
-          _buildQuickAccessGrid(),
+        _buildQuickAccessGrid(), // Onde estão os 6 cards novos
 
-          const SizedBox(height: 30),
-          
-          _buildSectionHeader("AGENDA: PRAZOS RECENTES", Icons.event_note_rounded),
-          _buildAgendaPreview(),
+        const SizedBox(height: 30),
+        
+        // 1º AGENDA
+        _buildSectionHeader("AGENDA: PRAZOS RECENTES", Icons.event_note_rounded),
+        _buildAgendaPreview(),
 
-          const SizedBox(height: 25),
+        const SizedBox(height: 25),
 
-          _buildSectionHeader("ESTUDOS: PERFORMANCE POR PASTA", Icons.leaderboard_rounded),
-          _buildEstudosRanking(),
+        // 2º FINANÇAS
+        _buildSectionHeader("FINANÇAS: VISÃO MENSAL", Icons.account_balance_wallet_rounded),
+        _buildFinancasSummary(),
 
-          const SizedBox(height: 25),
+        const SizedBox(height: 25),
 
-          _buildSectionHeader("FINANÇAS: VISÃO MENSAL", Icons.account_balance_wallet_rounded),
-          _buildFinancasSummary(),
-          
-          const SizedBox(height: 30),
-        ],
-      ),
-    );
-  }
+        // 3º ESTUDOS
+        _buildSectionHeader("ESTUDOS: PERFORMANCE POR PASTA", Icons.leaderboard_rounded),
+        _buildEstudosRanking(),
+        
+        const SizedBox(height: 30),
+      ],
+    ),
+  );
+}
 
 Widget _buildSectionHeader(String title, IconData icon) {
     return Padding(
@@ -237,9 +242,19 @@ Widget _buildSectionHeader(String title, IconData icon) {
       mainAxisSpacing: 12,
       childAspectRatio: 2.1,
       children: [
-        _buildSmallCard("Estudos", kAccentColor, Icons.bolt_rounded, () => mudarAba(1)),
-        _buildSmallCard("Agenda", const Color(0xFFCF6679), Icons.calendar_today_rounded, () => mudarAba(2)),
-        _buildSmallCard("Finanças", kSecondaryColor, Icons.payments_rounded, () => mudarAba(3)),
+        // Ordem: Agenda, Finanças, Estudos
+        _buildSmallCard("Agenda", const Color(0xFFCF6679), Icons.calendar_today_rounded, () => mudarAba(1)),
+        _buildSmallCard("Finanças", kSecondaryColor, Icons.payments_rounded, () => mudarAba(2)),
+        _buildSmallCard("Estudos", kAccentColor, Icons.bolt_rounded, () => mudarAba(3)),
+        
+        // Novos cards abrindo telas externas
+        _buildSmallCard("Academia", Colors.orangeAccent, Icons.fitness_center_rounded, () {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const AcademiaScreen()));
+        }),
+        _buildSmallCard("Compras", Colors.lightBlueAccent, Icons.shopping_cart_rounded, () {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const ComprasScreen()));
+        }),
+        
         _buildSmallCard("Ajustes", Colors.blueGrey, Icons.settings_suggest_rounded, () {
           Navigator.push(context, MaterialPageRoute(builder: (context) => const ConfigScreen()));
         }),
