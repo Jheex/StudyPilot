@@ -50,10 +50,12 @@ class PastaEstudo {
 
   int get totalXP => materias.fold(0, (sum, m) => sum + m.totalXP);
 
-  Map<String, dynamic> toJson() => {'nome': nome, 'cor': cor.value, 'materias': materias.map((m) => m.toJson()).toList()};
+  // CORRIGIDO: .value -> .toARGB32()
+  Map<String, dynamic> toJson() => {'nome': nome, 'cor': cor.toARGB32(), 'materias': materias.map((m) => m.toJson()).toList()};
+  
   factory PastaEstudo.fromJson(Map<String, dynamic> json) => PastaEstudo(
     nome: json['nome'],
-    cor: Color(json['cor']),
+    cor: Color(json['cor']), // O construtor Color ainda aceita o int retornado pelo JSON
     materias: (json['materias'] as List).map((m) => Materia.fromJson(m)).toList(),
   );
 }
@@ -75,8 +77,14 @@ class Categoria {
   String nome;
   Color cor;
   Categoria({required this.nome, required this.cor});
-  Map<String, dynamic> toJson() => {'nome': nome, 'cor': cor.value};
-  factory Categoria.fromJson(Map<String, dynamic> json) => Categoria(nome: json['nome'], cor: Color(json['cor'] as int));
+  
+  // CORRIGIDO: .value -> .toARGB32()
+  Map<String, dynamic> toJson() => {'nome': nome, 'cor': cor.toARGB32()};
+  
+  factory Categoria.fromJson(Map<String, dynamic> json) => Categoria(
+    nome: json['nome'], 
+    cor: Color(json['cor'] as int)
+  );
 }
 
 class Compromisso {
@@ -109,7 +117,6 @@ class AppData extends ChangeNotifier {
   factory AppData() => _instance;
   AppData._internal();
 
-  // --- DADOS ---
   List<PastaEstudo> pastas = [];
   List<Compromisso> tarefas = [];
   double saldoTotal = 0.0;
@@ -120,28 +127,24 @@ class AppData extends ChangeNotifier {
     "Alimentação": 0.0,
   };
 
-  // --- GETTERS ---
   int get totalXP => pastas.fold(0, (sum, p) => sum + p.totalXP);
 
   // --- PERSISTÊNCIA ---
   Future<void> loadData() async {
     final prefs = await SharedPreferences.getInstance();
     
-    // Carregar Estudos
     final String? studyData = prefs.getString('study_pilot_v3');
     if (studyData != null) {
       Iterable l = jsonDecode(studyData);
       pastas = l.map((model) => PastaEstudo.fromJson(model)).toList();
     }
 
-    // Carregar Agenda
     final String? agendaData = prefs.getString('agenda_data');
     if (agendaData != null) {
       Iterable l = jsonDecode(agendaData);
       tarefas = l.map((model) => Compromisso.fromJson(model)).toList();
     }
 
-    // Carregar Finanças
     saldoTotal = prefs.getDouble('saldo_total') ?? 0.0;
     final String? gastosData = prefs.getString('categorias_gastos');
     if (gastosData != null) {
@@ -161,7 +164,7 @@ class AppData extends ChangeNotifier {
     notifyListeners();
   }
 
-  // --- MÉTODOS DE ESTUDOS ---
+  // MÉTODOS SIMPLIFICADOS PARA EXEMPLO
   void adicionarPasta(String nome, Color cor) {
     pastas.add(PastaEstudo(nome: nome, cor: cor, materias: []));
     _save();
@@ -211,7 +214,6 @@ class AppData extends ChangeNotifier {
     _save();
   }
 
-  // --- MÉTODOS DE FINANÇAS (CRUD CATEGORIAS) ---
   void atualizarSaldo(double valor) {
     saldoTotal += valor;
     _save();
@@ -244,7 +246,6 @@ class AppData extends ChangeNotifier {
     }
   }
 
-  // --- MÉTODOS DE AGENDA ---
   void adicionarTarefa(Compromisso tarefa) {
     tarefas.add(tarefa);
     tarefas.sort((a, b) => a.dataHora.compareTo(b.dataHora));
