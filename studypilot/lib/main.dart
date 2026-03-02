@@ -56,7 +56,6 @@ class _MainLayoutState extends State<MainLayout> {
   @override
   void initState() {
     super.initState();
-    // Carrega os dados salvos e escuta mudanças para atualizar a UI
     appData.loadData();
     appData.addListener(_atualizarInterface);
   }
@@ -131,7 +130,10 @@ class _MainLayoutState extends State<MainLayout> {
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ConfigScreen())),
               child: Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), shape: BoxShape.circle),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.05), // CORRIGIDO
+                  shape: BoxShape.circle
+                ),
                 child: const Icon(Icons.settings_outlined, size: 22, color: kAccentColor),
               ),
             ),
@@ -139,18 +141,21 @@ class _MainLayoutState extends State<MainLayout> {
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(color: Colors.white.withOpacity(0.05), height: 1),
+          child: Container(
+            color: Colors.white.withValues(alpha: 0.05), // CORRIGIDO
+            height: 1
+          ),
         ),
       ),
       body: IndexedStack(index: indiceAtual, children: telas),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: kBackgroundColor,
-          border: Border(top: BorderSide(color: Colors.white.withOpacity(0.05))),
+          border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.05))), // CORRIGIDO
         ),
         child: NavigationBar(
           backgroundColor: kBackgroundColor,
-          indicatorColor: kAccentColor.withOpacity(0.1),
+          indicatorColor: kAccentColor.withValues(alpha: 0.1), // CORRIGIDO
           selectedIndex: indiceAtual,
           onDestinationSelected: mudarAba,
           height: 75,
@@ -201,14 +206,23 @@ class _MainLayoutState extends State<MainLayout> {
     );
   }
 
-  Widget _buildSectionHeader(String title, IconData icon) {
+Widget _buildSectionHeader(String title, IconData icon) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12, left: 5),
       child: Row(
         children: [
           Icon(icon, size: 14, color: Colors.white24),
           const SizedBox(width: 8),
-          Text(title, style: const TextStyle(fontSize: 10, color: Colors.white24, fontWeight: FontWeight.bold, letterSpacing: 1.1)),
+          // REMOVIDO O 'const' DAQUI:
+          Text(
+            title, 
+            style: const TextStyle(
+              fontSize: 10, 
+              color: Colors.white24, 
+              fontWeight: FontWeight.bold, 
+              letterSpacing: 1.1
+            )
+          ),
         ],
       ),
     );
@@ -241,7 +255,7 @@ class _MainLayoutState extends State<MainLayout> {
         decoration: BoxDecoration(
           color: kCardColor,
           borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: Colors.white.withOpacity(0.05)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.05)), // CORRIGIDO
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -306,7 +320,6 @@ class _MainLayoutState extends State<MainLayout> {
           ? const Center(child: Text("Sem dados de estudo.", style: TextStyle(color: Colors.white30, fontSize: 12)))
           : Column(
               children: appData.pastas.map((p) {
-                // AJUSTE AQUI: Calculando progresso dinâmico via XP
                 final stats = LevelCalculator.getStats(p.totalXP);
                 final double progressoReal = stats['barra'];
                 final int levelAtual = stats['level'];
@@ -328,7 +341,7 @@ class _MainLayoutState extends State<MainLayout> {
                         borderRadius: BorderRadius.circular(10),
                         child: LinearProgressIndicator(
                           value: progressoReal, 
-                          backgroundColor: Colors.white.withOpacity(0.05), 
+                          backgroundColor: Colors.white.withValues(alpha: 0.05), // CORRIGIDO
                           color: p.cor, 
                           minHeight: 6
                         ),
@@ -349,7 +362,7 @@ class _MainLayoutState extends State<MainLayout> {
       decoration: BoxDecoration(
         color: kCardColor,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: kSecondaryColor.withOpacity(0.1)),
+        border: Border.all(color: kSecondaryColor.withValues(alpha: 0.1)), // CORRIGIDO
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -367,7 +380,7 @@ class _MainLayoutState extends State<MainLayout> {
           ),
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: kSecondaryColor.withOpacity(0.1), shape: BoxShape.circle),
+            decoration: BoxDecoration(color: kSecondaryColor.withValues(alpha: 0.1), shape: BoxShape.circle), // CORRIGIDO
             child: const Icon(Icons.trending_down, color: kSecondaryColor, size: 20),
           ),
         ],
