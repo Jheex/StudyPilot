@@ -6,6 +6,8 @@ import 'agenda_screen.dart';
 import 'financas_screen.dart';
 import 'academia_screen.dart';
 import 'compras_screen.dart';
+import 'cofre_screen.dart';
+import 'gerenciamento_screen.dart';
 import 'config_screen.dart';
 
 // Constantes Globais de Estilo
@@ -78,11 +80,16 @@ class _MainLayoutState extends State<MainLayout> {
 
   @override
   Widget build(BuildContext context) {
+    // Adicionamos as novas telas à lista para que o IndexedStack as gerencie sob o footer
     final List<Widget> telas = [
-      buildDashboard(),
-      const AgendaScreen(),
-      const FinancasScreen(),
-      const StudyScreen(),
+      buildDashboard(),       // Índice 0
+      const AgendaScreen(),   // Índice 1
+      const FinancasScreen(), // Índice 2
+      const StudyScreen(),    // Índice 3
+      const AcademiaScreen(), // Índice 4 (Acessada via card)
+      const ComprasScreen(),  // Índice 5 (Acessada via card)
+      const CofreScreen(),        // 6 (Novo)
+      const GerenciamentoScreen(),// 7 (Novo)
     ];
 
     return Scaffold(
@@ -133,7 +140,7 @@ class _MainLayoutState extends State<MainLayout> {
               child: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.05), // CORRIGIDO
+                  color: Colors.white.withValues(alpha: 0.05),
                   shape: BoxShape.circle
                 ),
                 child: const Icon(Icons.settings_outlined, size: 22, color: kAccentColor),
@@ -144,7 +151,7 @@ class _MainLayoutState extends State<MainLayout> {
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
           child: Container(
-            color: Colors.white.withValues(alpha: 0.05), // CORRIGIDO
+            color: Colors.white.withValues(alpha: 0.05),
             height: 1
           ),
         ),
@@ -158,14 +165,15 @@ class _MainLayoutState extends State<MainLayout> {
         child: NavigationBar(
           backgroundColor: kBackgroundColor,
           indicatorColor: kAccentColor.withValues(alpha: 0.1),
-          selectedIndex: indiceAtual,
+          // Se o índice for 4 ou 5 (Academia/Compras), mantemos o foco visual no ícone da Home (0)
+          selectedIndex: indiceAtual > 3 ? 0 : indiceAtual, 
           onDestinationSelected: mudarAba,
           height: 75,
           destinations: const [
             NavigationDestination(icon: Icon(Icons.grid_view_rounded), label: 'Home'),
             NavigationDestination(icon: Icon(Icons.calendar_today_rounded), label: 'Agenda'),
             NavigationDestination(icon: Icon(Icons.payments_outlined), label: 'Finanças'),
-            NavigationDestination(icon: Icon(Icons.bolt_rounded), label: 'Estudos'),
+            NavigationDestination(icon: Icon(Icons.school_rounded), label: 'Estudos'),
           ],
         ),
       ),
@@ -242,19 +250,28 @@ Widget _buildSectionHeader(String title, IconData icon) {
       mainAxisSpacing: 12,
       childAspectRatio: 2.1,
       children: [
-        // Ordem: Agenda, Finanças, Estudos
+        // 1. Academia
+        _buildSmallCard("Academia", Colors.orangeAccent, Icons.fitness_center_rounded, () => mudarAba(4)),
+        
+        // 2. Agenda
         _buildSmallCard("Agenda", const Color(0xFFCF6679), Icons.calendar_today_rounded, () => mudarAba(1)),
+        
+        // 3. Compras
+        _buildSmallCard("Compras", Colors.lightBlueAccent, Icons.shopping_cart_rounded, () => mudarAba(5)),
+        
+        // 4. Finanças
         _buildSmallCard("Finanças", kSecondaryColor, Icons.payments_rounded, () => mudarAba(2)),
-        _buildSmallCard("Estudos", kAccentColor, Icons.bolt_rounded, () => mudarAba(3)),
         
-        // Novos cards abrindo telas externas
-        _buildSmallCard("Academia", Colors.orangeAccent, Icons.fitness_center_rounded, () {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => const AcademiaScreen()));
-        }),
-        _buildSmallCard("Compras", Colors.lightBlueAccent, Icons.shopping_cart_rounded, () {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => const ComprasScreen()));
-        }),
+        // 5. Estudos
+        _buildSmallCard("Estudos", kAccentColor, Icons.school_rounded, () => mudarAba(3)),
         
+        // 6. Cofre (Novo)
+        _buildSmallCard("Cofre", Colors.amber, Icons.lock_outline_rounded, () => mudarAba(6)),
+        
+        // 7. Gerenciamento (Novo)
+        _buildSmallCard("Gerenciamento", Colors.tealAccent, Icons.assessment_rounded, () => mudarAba(7)),
+        
+        // 8. Ajustes
         _buildSmallCard("Ajustes", Colors.blueGrey, Icons.settings_suggest_rounded, () {
           Navigator.push(context, MaterialPageRoute(builder: (context) => const ConfigScreen()));
         }),
