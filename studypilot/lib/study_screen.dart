@@ -1,70 +1,5 @@
 import 'package:flutter/material.dart';
-import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
-
-// --- MODELOS DE DADOS ---
-
-class EstudoLog {
-  String texto;
-  final String data;
-  final int xp;
-  final DateTime timestamp;
-
-  EstudoLog({required this.texto, required this.data, this.xp = 100, DateTime? timestamp}) 
-    : timestamp = timestamp ?? DateTime.now();
-
-  Map<String, dynamic> toJson() => {'texto': texto, 'data': data, 'xp': xp, 'timestamp': timestamp.toIso8601String()};
-  factory EstudoLog.fromJson(Map<String, dynamic> json) => 
-      EstudoLog(
-        texto: json['texto'], 
-        data: json['data'], 
-        xp: json['xp'] ?? 100,
-        timestamp: json['timestamp'] != null ? DateTime.parse(json['timestamp']) : DateTime.now()
-      );
-}
-
-class Materia {
-  final String id;
-  String nome;
-  final List<EstudoLog> logs;
-
-  Materia({required this.id, required this.nome, required this.logs});
-
-  int get totalXP => logs.fold(0, (sum, log) => sum + log.xp);
-
-  Map<String, dynamic> toJson() => {'id': id, 'nome': nome, 'logs': logs.map((l) => l.toJson()).toList()};
-  factory Materia.fromJson(Map<String, dynamic> json) => Materia(
-    id: json['id'],
-    nome: json['nome'],
-    logs: (json['logs'] as List).map((l) => EstudoLog.fromJson(l)).toList(),
-  );
-}
-
-class PastaEstudo {
-  String nome;
-  Color cor;
-  final List<Materia> materias;
-
-  PastaEstudo({required this.nome, required this.cor, required this.materias});
-
-  int get totalXP => materias.fold(0, (sum, m) => sum + m.totalXP);
-
-  Map<String, dynamic> toJson() => {'nome': nome, 'cor': cor.value, 'materias': materias.map((m) => m.toJson()).toList()};
-  factory PastaEstudo.fromJson(Map<String, dynamic> json) => PastaEstudo(
-    nome: json['nome'],
-    cor: Color(json['cor']),
-    materias: (json['materias'] as List).map((m) => Materia.fromJson(m)).toList(),
-  );
-}
-
-class LevelCalculator {
-  static Map<String, dynamic> getStats(int xp) {
-    int xpPorLevel = 500;
-    int level = (xp / xpPorLevel).floor() + 1;
-    double progresso = (xp % xpPorLevel) / xpPorLevel;
-    return {'level': level, 'barra': progresso};
-  }
-}
+import 'app_data.dart';
 
 // --- TELA 1: DASHBOARD DE PASTAS ---
 
@@ -76,29 +11,25 @@ class StudyScreen extends StatefulWidget {
 }
 
 class _StudyScreenState extends State<StudyScreen> {
-  List<PastaEstudo> _pastas = [];
+  // Instância do AppData para acessar os dados globais
+  final AppData appData = AppData();
   bool _showAnalysis = false;
 
   @override
   void initState() {
     super.initState();
-    _carregarDados();
+    // Ouve mudanças para atualizar a barra de XP e a lista
+    appData.addListener(_forceUpdate);
   }
 
-  void _carregarDados() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? data = prefs.getString('study_pilot_v3');
-    if (data != null) {
-      setState(() {
-        Iterable l = jsonDecode(data);
-        _pastas = l.map((model) => PastaEstudo.fromJson(model)).toList();
-      });
-    }
+  @override
+  void dispose() {
+    appData.removeListener(_forceUpdate);
+    super.dispose();
   }
 
-  void _salvar() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('study_pilot_v3', jsonEncode(_pastas));
+  void _forceUpdate() {
+    if (mounted) setState(() {});
   }
 
   void _showPastaDialog({PastaEstudo? pastaParaEditar}) {
@@ -125,7 +56,11 @@ class _StudyScreenState extends State<StudyScreen> {
                 children: [Colors.redAccent, Colors.blueAccent, Colors.greenAccent, Colors.amber, Colors.purpleAccent].map((c) {
                   return GestureDetector(
                     onTap: () => setModalState(() => selectedColor = c),
-                    child: CircleAvatar(backgroundColor: c, radius: 15, child: selectedColor == c ? const Icon(Icons.check, size: 15, color: Colors.white) : null),
+                    child: CircleAvatar(
+                      backgroundColor: c, 
+                      radius: 15, 
+                      child: selectedColor == c ? const Icon(Icons.check, size: 15, color: Colors.white) : null
+                    ),
                   );
                 }).toList(),
               )
@@ -136,15 +71,11 @@ class _StudyScreenState extends State<StudyScreen> {
             ElevatedButton(
               onPressed: () {
                 if (nameController.text.isNotEmpty) {
-                  setState(() {
-                    if (pastaParaEditar == null) {
-                      _pastas.add(PastaEstudo(nome: nameController.text, cor: selectedColor, materias: []));
-                    } else {
-                      pastaParaEditar.nome = nameController.text;
-                      pastaParaEditar.cor = selectedColor;
-                    }
-                  });
-                  _salvar();
+                  if (pastaParaEditar == null) {
+                    appData.adicionarPasta(nameController.text, selectedColor);
+                  } else {
+                    appData.editarPasta(pastaParaEditar, nameController.text, selectedColor);
+                  }
                   Navigator.pop(context);
                 }
               },
@@ -158,7 +89,7 @@ class _StudyScreenState extends State<StudyScreen> {
 
   @override
   Widget build(BuildContext context) {
-    int xpGlobal = _pastas.fold(0, (sum, p) => sum + p.totalXP);
+    int xpGlobal = appData.totalXP;
     var stats = LevelCalculator.getStats(xpGlobal);
     int xpPorLevel = 500; 
     int xpAtualNoLevel = xpGlobal % xpPorLevel;
@@ -175,6 +106,7 @@ class _StudyScreenState extends State<StudyScreen> {
           SliverAppBar(
             expandedHeight: 220,
             pinned: true,
+            automaticallyImplyLeading: false,
             backgroundColor: const Color(0xFF0A0C10),
             flexibleSpace: FlexibleSpaceBar(
               background: _buildHeader(stats, xpAtualNoLevel, xpPorLevel),
@@ -193,8 +125,8 @@ class _StudyScreenState extends State<StudyScreen> {
                 childAspectRatio: 1.1,
               ),
               delegate: SliverChildBuilderDelegate(
-                (context, index) => _buildPastaCard(_pastas[index]),
-                childCount: _pastas.length,
+                (context, index) => _buildPastaCard(appData.pastas[index]),
+                childCount: appData.pastas.length,
               ),
             ),
           ),
@@ -236,7 +168,7 @@ class _StudyScreenState extends State<StudyScreen> {
                   child: LinearProgressIndicator(
                     value: stats['barra'],
                     minHeight: 12,
-                    backgroundColor: Colors.white.withOpacity(0.05),
+                    backgroundColor: Colors.white.withValues(alpha: 0.05),
                     valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFBB86FC)),
                   ),
                 ),
@@ -257,7 +189,7 @@ class _StudyScreenState extends State<StudyScreen> {
   }
 
   Widget _buildAnalysisPanel(int xpGlobal) {
-    if (_pastas.isEmpty) return const SizedBox();
+    if (appData.pastas.isEmpty) return const SizedBox();
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -289,7 +221,7 @@ class _StudyScreenState extends State<StudyScreen> {
                 children: [
                   const Text("DISTRIBUIÇÃO DE FOCO", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 15),
-                  ..._pastas.map((p) {
+                  ...appData.pastas.map((p) {
                     double perc = xpGlobal == 0 ? 0 : p.totalXP / xpGlobal;
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 12),
@@ -304,7 +236,12 @@ class _StudyScreenState extends State<StudyScreen> {
                             ],
                           ),
                           const SizedBox(height: 5),
-                          LinearProgressIndicator(value: perc, backgroundColor: Colors.white.withOpacity(0.05), color: p.cor, minHeight: 4),
+                          LinearProgressIndicator(
+                            value: perc, 
+                            backgroundColor: Colors.white.withValues(alpha: 0.05), 
+                            color: p.cor, 
+                            minHeight: 4
+                          ),
                         ],
                       ),
                     );
@@ -323,17 +260,13 @@ class _StudyScreenState extends State<StudyScreen> {
     return Stack(
       children: [
         InkWell(
-          onTap: () async {
-            await Navigator.push(context, MaterialPageRoute(builder: (context) => MateriasScreen(pasta: pasta)));
-            setState(() {});
-            _salvar();
-          },
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => MateriasScreen(pasta: pasta))),
           child: Container(
             padding: const EdgeInsets.all(15),
             decoration: BoxDecoration(
               color: const Color(0xFF161B22),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: pasta.cor.withOpacity(0.3), width: 2),
+              border: Border.all(color: pasta.cor.withValues(alpha: 0.3), width: 2),
             ),
             child: Center(
               child: Column(
@@ -349,14 +282,14 @@ class _StudyScreenState extends State<StudyScreen> {
         ),
         PositionfulMenu(
           onEdit: () => _showPastaDialog(pastaParaEditar: pasta),
-          onDelete: () => setState(() { _pastas.remove(pasta); _salvar(); }),
+          onDelete: () => appData.removerPasta(pasta),
         ),
       ],
     );
   }
 }
 
-// --- COMPONENTE DE MENU (REUTILIZÁVEL) ---
+// --- COMPONENTE DE MENU ---
 
 class PositionfulMenu extends StatelessWidget {
   final VoidCallback onEdit;
@@ -390,6 +323,22 @@ class MateriasScreen extends StatefulWidget {
 }
 
 class _MateriasScreenState extends State<MateriasScreen> {
+  final AppData appData = AppData();
+
+  @override
+  void initState() {
+    super.initState();
+    appData.addListener(_forceUpdate);
+  }
+
+  @override
+  void dispose() {
+    appData.removeListener(_forceUpdate);
+    super.dispose();
+  }
+
+  void _forceUpdate() => setState(() {});
+
   void _showMateriaDialog({Materia? materiaParaEditar}) {
     TextEditingController controller = TextEditingController(text: materiaParaEditar?.nome ?? "");
     showDialog(
@@ -403,13 +352,11 @@ class _MateriasScreenState extends State<MateriasScreen> {
           ElevatedButton(
             onPressed: () {
               if (controller.text.isNotEmpty) {
-                setState(() {
-                  if (materiaParaEditar == null) {
-                    widget.pasta.materias.add(Materia(id: DateTime.now().toString(), nome: controller.text, logs: []));
-                  } else {
-                    materiaParaEditar.nome = controller.text;
-                  }
-                });
+                if (materiaParaEditar == null) {
+                  appData.adicionarMateria(widget.pasta, controller.text);
+                } else {
+                  appData.editarMateria(materiaParaEditar, controller.text);
+                }
                 Navigator.pop(context);
               }
             },
@@ -440,12 +387,14 @@ class _MateriasScreenState extends State<MateriasScreen> {
             color: const Color(0xFF161B22),
             margin: const EdgeInsets.only(bottom: 10),
             child: ListTile(
-              onTap: () async {
-                await Navigator.push(context, MaterialPageRoute(builder: (context) => DetalheMateriaScreen(materia: m, cor: widget.pasta.cor)));
-                setState(() {});
-              },
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => DetalheMateriaScreen(materia: m, cor: widget.pasta.cor))),
               title: Text(m.nome, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              subtitle: LinearProgressIndicator(value: mStats['barra'], backgroundColor: Colors.white10, color: widget.pasta.cor, minHeight: 2),
+              subtitle: LinearProgressIndicator(
+                value: mStats['barra'], 
+                backgroundColor: Colors.white10, 
+                color: widget.pasta.cor, 
+                minHeight: 2
+              ),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -454,7 +403,7 @@ class _MateriasScreenState extends State<MateriasScreen> {
                     icon: const Icon(Icons.more_vert, color: Colors.white24),
                     itemBuilder: (context) => [
                       PopupMenuItem(onTap: () => _showMateriaDialog(materiaParaEditar: m), child: const Text("Editar")),
-                      PopupMenuItem(onTap: () => setState(() => widget.pasta.materias.remove(m)), child: const Text("Excluir", style: TextStyle(color: Colors.red))),
+                      PopupMenuItem(onTap: () => appData.removerMateria(widget.pasta, m), child: const Text("Excluir", style: TextStyle(color: Colors.red))),
                     ],
                   ),
                 ],
@@ -479,6 +428,7 @@ class DetalheMateriaScreen extends StatefulWidget {
 }
 
 class _DetalheMateriaScreenState extends State<DetalheMateriaScreen> {
+  final AppData appData = AppData();
   final TextEditingController _logController = TextEditingController();
 
   void _showEditLogDialog(EstudoLog log) {
@@ -492,8 +442,9 @@ class _DetalheMateriaScreenState extends State<DetalheMateriaScreen> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text("CANCELAR")),
           ElevatedButton(onPressed: () {
-            setState(() => log.texto = editController.text);
+            appData.editarLog(log, editController.text);
             Navigator.pop(context);
+            setState(() {});
           }, child: const Text("SALVAR")),
         ],
       ),
@@ -528,12 +479,9 @@ class _DetalheMateriaScreenState extends State<DetalheMateriaScreen> {
                   style: IconButton.styleFrom(backgroundColor: widget.cor), 
                   onPressed: () {
                     if (_logController.text.isNotEmpty) {
-                      setState(() => widget.materia.logs.insert(0, EstudoLog(
-                        texto: _logController.text, 
-                        data: "${DateTime.now().day}/${DateTime.now().month}",
-                        timestamp: DateTime.now(),
-                      )));
+                      appData.adicionarLog(widget.materia, _logController.text);
                       _logController.clear();
+                      setState(() {});
                     }
                   }
                 ),
@@ -558,7 +506,10 @@ class _DetalheMateriaScreenState extends State<DetalheMateriaScreen> {
                       icon: const Icon(Icons.edit, size: 16, color: Colors.white10),
                       itemBuilder: (context) => [
                         PopupMenuItem(onTap: () => _showEditLogDialog(log), child: const Text("Editar")),
-                        PopupMenuItem(onTap: () => setState(() => widget.materia.logs.remove(log)), child: const Text("Excluir", style: TextStyle(color: Colors.red))),
+                        PopupMenuItem(onTap: () {
+                          appData.removerLog(widget.materia, log);
+                          setState(() {});
+                        }, child: const Text("Excluir", style: TextStyle(color: Colors.red))),
                       ],
                     )
                   ],
